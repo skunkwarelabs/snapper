@@ -12,19 +12,22 @@ import java.nio.ByteOrder
  * (assets/fish_model.tflite + assets/fish_labels.txt). Replaces the Gemini photo ID.
  *
  * The model is produced by tools/train_fish_model.py. Until it's bundled, [isAvailable] is
- * false and the app falls back to manual species entry. Model contract: input 224×224×3
- * float32 with pixel values 0–255, output a softmax over the label file's line order.
+ * false and the app falls back to manual species entry. Model contract: a square float32
+ * RGB input with pixel values 0–255, output a softmax over the label file's line order.
+ * The input side length is read from the model itself ([inputSize]) — no constant to keep in
+ * sync, so any backbone/resolution from the trainer drops in without a code change.
  */
 object FishClassifier {
 
     private const val MODEL = "fish_model.tflite"
     private const val LABELS = "fish_labels.txt"
-    private const val SIZE = 224
+    private const val DEFAULT_SIZE = 300
 
     data class Prediction(val label: String, val confidence: Float)
 
     @Volatile private var interpreter: Interpreter? = null
     @Volatile private var labels: List<String> = emptyList()
+    @Volatile private var inputSize = DEFAULT_SIZE
     @Volatile private var triedLoad = false
 
     /** True once the bundled model has loaded. Lazy + cached. */
@@ -42,6 +45,8 @@ object FishClassifier {
             val buf = ByteBuffer.allocateDirect(bytes.size).order(ByteOrder.nativeOrder())
             buf.put(bytes); buf.rewind()
             val itp = Interpreter(buf)
+            // Input tensor shape is [1, H, W, 3]; trust the model for the side length.
+            itp.getInputTensor(0).shape().getOrNull(1)?.takeIf { it > 0 }?.let { inputSize = it }
             val lbls = context.assets.open(LABELS).bufferedReader().use { r ->
                 r.readLines().map { it.trim() }.filter { it.isNotEmpty() }
             }
@@ -77,7 +82,7 @@ object FishClassifier {
             .sortedByDescending { it.confidence }
     }
 
-    /** The full frame, a horizontal mirror, and an 80% center crop (all later squished to SIZE). */
+    /** The full frame, a horizontal mirror, and an 80% center crop (all later squished to inputSize). */
     private fun ttaViews(src: Bitmap): List<Bitmap> {
         val views = ArrayList<Bitmap>(3)
         views.add(src)
@@ -94,10 +99,11 @@ object FishClassifier {
     }
 
     private fun preprocess(bitmap: Bitmap): ByteBuffer {
-        val scaled = Bitmap.createScaledBitmap(bitmap, SIZE, SIZE, true)
-        val buf = ByteBuffer.allocateDirect(1 * SIZE * SIZE * 3 * 4).order(ByteOrder.nativeOrder())
-        val px = IntArray(SIZE * SIZE)
-        scaled.getPixels(px, 0, SIZE, 0, 0, SIZE, SIZE)
+        val size = inputSize
+        val scaled = Bitmap.createScaledBitmap(bitmap, size, size, true)
+        val buf = ByteBuffer.allocateDirect(1 * size * size * 3 * 4).order(ByteOrder.nativeOrder())
+        val px = IntArray(size * size)
+        scaled.getPixels(px, 0, size, 0, 0, size, size)
         for (p in px) {
             buf.putFloat(((p shr 16) and 0xFF).toFloat())  // R, 0–255
             buf.putFloat(((p shr 8) and 0xFF).toFloat())   // G
