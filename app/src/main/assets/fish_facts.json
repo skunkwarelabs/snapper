@@ -1,0 +1,315 @@
+{
+  "version": 1,
+  "facts": {
+    "Black Crappie": {
+      "scientific": "Pomoxis nigromaculatus",
+      "length": "7-12 in",
+      "weight": "0.5-1.5 lb",
+      "about": "A popular panfish prized for its tasty white flesh and schooling habits.",
+      "identification": "Deep, flattened silvery body with irregular black speckles and 7-8 dorsal spines.",
+      "habitat": "Clear, weedy lakes, ponds, and slow rivers with submerged cover.",
+      "diet": "Eats minnows and insects; best caught on small jigs, minnows, and tube baits.",
+      "bestTime": "Spring spawn is prime; fish dawn and dusk year-round."
+    },
+    "Blue Catfish": {
+      "scientific": "Ictalurus furcatus",
+      "length": "20-40 in",
+      "weight": "5-30 lb",
+      "about": "The largest North American catfish, a hard-fighting big-river predator.",
+      "identification": "Slate-blue body, deeply forked tail, and a straight-edged anal fin.",
+      "habitat": "Deep channels and pools of large rivers and reservoirs.",
+      "diet": "Eats fish and crustaceans; target with cut bait, shad, and skipjack.",
+      "bestTime": "Summer and fall nights, especially in deeper holes."
+    },
+    "Bluegill": {
+      "scientific": "Lepomis macrochirus",
+      "length": "6-10 in",
+      "weight": "0.25-1 lb",
+      "about": "An abundant, scrappy sunfish and a classic first catch for anglers.",
+      "identification": "Round body with a black ear flap, dark vertical bars, and orange breast.",
+      "habitat": "Weedy shallows of ponds, lakes, and slow streams.",
+      "diet": "Eats insects and larvae; catch on worms, crickets, and small jigs.",
+      "bestTime": "Late spring spawn near beds; mornings and evenings in summer."
+    },
+    "Brook Trout": {
+      "scientific": "Salvelinus fontinalis",
+      "length": "6-12 in",
+      "weight": "0.25-1 lb",
+      "about": "A small, colorful native char of cold, clean headwater streams.",
+      "identification": "Dark body with worm-like markings, red spots in blue halos, white-edged fins.",
+      "habitat": "Cold, clear, well-oxygenated mountain streams and northern lakes.",
+      "diet": "Eats insects and small fish; use flies, spinners, and worms.",
+      "bestTime": "Spring and fall in cool water; early morning best."
+    },
+    "Brown Trout": {
+      "scientific": "Salmo trutta",
+      "length": "10-20 in",
+      "weight": "1-5 lb",
+      "about": "A wary, hard-fighting trout introduced widely across North America.",
+      "identification": "Golden-brown body with black and red spots ringed by pale halos.",
+      "habitat": "Cool rivers, streams, and lakes with cover and current.",
+      "diet": "Eats insects, baitfish, and crayfish; use flies, spinners, and minnows.",
+      "bestTime": "Low light and overcast days in spring and fall."
+    },
+    "Bullhead": {
+      "scientific": "Ameiurus spp.",
+      "length": "8-14 in",
+      "weight": "0.5-2 lb",
+      "about": "Small, hardy bottom-feeding catfish common in murky waters.",
+      "identification": "Squarish tail, rounded body, dark coloring, and chin barbels.",
+      "habitat": "Mud-bottomed ponds, lakes, and sluggish rivers.",
+      "diet": "Eats almost anything; catch on worms, stinkbait, and cut bait.",
+      "bestTime": "Warm summer nights along the bottom."
+    },
+    "Chain Pickerel": {
+      "scientific": "Esox niger",
+      "length": "15-24 in",
+      "weight": "1-3 lb",
+      "about": "A toothy, aggressive ambush predator and miniature relative of the pike.",
+      "identification": "Greenish body with a distinct dark chain-like pattern and duck-bill snout.",
+      "habitat": "Weedy, slow backwaters of lakes, ponds, and rivers.",
+      "diet": "Eats fish and frogs; target with spinners, spoons, and live minnows.",
+      "bestTime": "Cooler water of fall and spring, midday in weeds."
+    },
+    "Channel Catfish": {
+      "scientific": "Ictalurus punctatus",
+      "length": "12-24 in",
+      "weight": "2-10 lb",
+      "about": "The most widespread and popular catfish among North American anglers.",
+      "identification": "Slender gray-olive body, deeply forked tail, and scattered dark spots.",
+      "habitat": "Rivers, lakes, and ponds with sand, gravel, or rock bottoms.",
+      "diet": "Eats fish, insects, and crayfish; use cut bait, nightcrawlers, and stinkbait.",
+      "bestTime": "Summer evenings and nights near the bottom."
+    },
+    "Chinook Salmon": {
+      "scientific": "Oncorhynchus tshawytscha",
+      "length": "24-36 in",
+      "weight": "10-30 lb",
+      "about": "The largest Pacific salmon, also called king salmon, a powerful sportfish.",
+      "identification": "Silver body with black spots on back and tail, and a black mouth with dark gums.",
+      "habitat": "Ocean and the Great Lakes, spawning in cold rivers and tributaries.",
+      "diet": "Eats baitfish; troll with spoons, plugs, and cut bait.",
+      "bestTime": "Late summer and fall runs as they stage near rivers."
+    },
+    "Coho Salmon": {
+      "scientific": "Oncorhynchus kisutch",
+      "length": "18-28 in",
+      "weight": "6-12 lb",
+      "about": "A fast, acrobatic Pacific salmon also called silver salmon.",
+      "identification": "Silver sides, spots only on upper tail lobe, black mouth with white gums.",
+      "habitat": "Ocean and the Great Lakes, spawning in coastal rivers and streams.",
+      "diet": "Eats baitfish and squid; troll spoons, flies, and trolling lures.",
+      "bestTime": "Fall runs in rivers; morning and evening in lakes."
+    },
+    "Crappie": {
+      "scientific": "Pomoxis spp.",
+      "length": "7-12 in",
+      "weight": "0.5-1.5 lb",
+      "about": "A favorite schooling panfish covering both black and white crappie.",
+      "identification": "Deep, laterally flattened silvery body with dark speckles or bars.",
+      "habitat": "Weedy lakes, ponds, and slow rivers with brush and cover.",
+      "diet": "Eats minnows and insects; use small jigs, minnows, and tube baits.",
+      "bestTime": "Spring spawn near cover; dawn and dusk otherwise."
+    },
+    "Flathead Catfish": {
+      "scientific": "Pylodictis olivaris",
+      "length": "20-40 in",
+      "weight": "5-30 lb",
+      "about": "A large solitary predator catfish that prefers live prey.",
+      "identification": "Flattened head, mottled yellow-brown body, and a squared tail with a protruding lower jaw.",
+      "habitat": "Deep pools, logjams, and cover in large rivers and reservoirs.",
+      "diet": "Eats live fish; target with live bluegill, shad, and sunfish.",
+      "bestTime": "Summer nights near submerged wood and cover."
+    },
+    "Hybrid Striped Bass": {
+      "scientific": "Morone saxatilis x chrysops",
+      "length": "12-20 in",
+      "weight": "2-8 lb",
+      "about": "A stocked cross of striped and white bass, hard-fighting and fast-growing.",
+      "identification": "Silver body with broken, interrupted dark horizontal stripes and a deep body.",
+      "habitat": "Open water of reservoirs and large rivers, often in schools.",
+      "diet": "Eats shad and baitfish; use jigs, spoons, and live shad.",
+      "bestTime": "Spring and fall when chasing schools of baitfish."
+    },
+    "Lake Sturgeon": {
+      "scientific": "Acipenser fulvescens",
+      "length": "36-60 in",
+      "weight": "10-40 lb",
+      "about": "An ancient, long-lived bottom-dwelling giant with bony plates.",
+      "identification": "Long body with rows of bony scutes, a shovel snout, and four barbels.",
+      "habitat": "Deep channels and bottoms of large rivers and lakes.",
+      "diet": "Eats insects, crustaceans, and mollusks; use nightcrawlers on bottom.",
+      "bestTime": "Spring and early summer, often during regulated seasons."
+    },
+    "Lake Trout": {
+      "scientific": "Salvelinus namaycush",
+      "length": "18-30 in",
+      "weight": "4-15 lb",
+      "about": "A large, deep-dwelling char of cold northern lakes.",
+      "identification": "Dark gray-green body with pale spots and a deeply forked tail.",
+      "habitat": "Deep, cold, well-oxygenated lakes, often well below the surface.",
+      "diet": "Eats baitfish; troll spoons, plugs, and jig with cut bait.",
+      "bestTime": "Spring and fall in shallows; deep trolling in summer."
+    },
+    "Largemouth Bass": {
+      "scientific": "Micropterus salmoides",
+      "length": "12-18 in",
+      "weight": "1-5 lb",
+      "about": "The most sought-after freshwater gamefish in North America.",
+      "identification": "Green body with a dark lateral stripe and jaw extending past the eye.",
+      "habitat": "Weedy, warm lakes, ponds, and slow rivers with cover.",
+      "diet": "Eats fish, frogs, and crayfish; use plastic worms, crankbaits, and spinnerbaits.",
+      "bestTime": "Spring spawn and warm mornings and evenings."
+    },
+    "Muskellunge": {
+      "scientific": "Esox masquinongy",
+      "length": "30-48 in",
+      "weight": "10-30 lb",
+      "about": "The elusive apex predator known as the fish of ten thousand casts.",
+      "identification": "Long body with dark bars or spots on light background and forked tail.",
+      "habitat": "Weedy bays and rocky structure in large lakes and rivers.",
+      "diet": "Eats large fish; use big bucktails, jerkbaits, and crankbaits.",
+      "bestTime": "Fall is prime; low-light periods through warm months."
+    },
+    "Northern Pike": {
+      "scientific": "Esox lucius",
+      "length": "20-34 in",
+      "weight": "3-10 lb",
+      "about": "An aggressive, toothy predator widespread across northern waters.",
+      "identification": "Greenish body with light bean-shaped spots and a duck-bill snout.",
+      "habitat": "Weedy shallows and cool waters of lakes and rivers.",
+      "diet": "Eats fish; target with spoons, spinnerbaits, and live minnows.",
+      "bestTime": "Spring and fall in cool water during daylight."
+    },
+    "Oscar": {
+      "scientific": "Astronotus ocellatus",
+      "length": "8-14 in",
+      "weight": "1-3 lb",
+      "about": "A hardy South American cichlid established as an exotic in warm waters.",
+      "identification": "Dark oval body with orange mottling and an eyespot near the tail base.",
+      "habitat": "Warm canals, ponds, and lakes in tropical climates like Hawaii and Florida.",
+      "diet": "Eats fish and invertebrates; use small jigs, worms, and live bait.",
+      "bestTime": "Warm daylight hours near vegetation and structure."
+    },
+    "Peacock Bass": {
+      "scientific": "Cichla ocellaris",
+      "length": "12-18 in",
+      "weight": "2-6 lb",
+      "about": "A hard-hitting tropical cichlid prized as an exotic sportfish.",
+      "identification": "Golden-green body with dark vertical bars and an eyespot on the tail.",
+      "habitat": "Warm canals, lakes, and ponds in tropical regions like Hawaii and Florida.",
+      "diet": "Eats fish; target with crankbaits, jigs, and live shiners.",
+      "bestTime": "Warm sunny midday hours near cover."
+    },
+    "Rainbow Trout": {
+      "scientific": "Oncorhynchus mykiss",
+      "length": "10-18 in",
+      "weight": "1-4 lb",
+      "about": "A widely stocked, acrobatic trout popular with anglers everywhere.",
+      "identification": "Silvery body with black spots and a pink to red lateral stripe.",
+      "habitat": "Cold, clear streams, rivers, and lakes with good oxygen.",
+      "diet": "Eats insects and small fish; use flies, spinners, and PowerBait.",
+      "bestTime": "Spring and fall; mornings and evenings in cool water."
+    },
+    "Redear Sunfish": {
+      "scientific": "Lepomis microlophus",
+      "length": "7-11 in",
+      "weight": "0.5-1 lb",
+      "about": "A larger sunfish nicknamed shellcracker for its snail-eating habits.",
+      "identification": "Olive body with a bright red or orange margin on the ear flap.",
+      "habitat": "Warm ponds and lakes with vegetation and firm bottoms.",
+      "diet": "Eats snails and invertebrates; use worms and small bottom baits.",
+      "bestTime": "Spring spawn near beds in shallow water."
+    },
+    "Sauger": {
+      "scientific": "Sander canadensis",
+      "length": "11-16 in",
+      "weight": "0.75-2 lb",
+      "about": "A river-loving cousin of the walleye built for turbid current.",
+      "identification": "Brassy body with distinct dark blotches and spotted dorsal fins.",
+      "habitat": "Turbid, fast pools and tailwaters of large rivers.",
+      "diet": "Eats small fish and invertebrates; use jigs, minnows, and crankbaits.",
+      "bestTime": "Late fall and winter near dams and current breaks."
+    },
+    "Smallmouth Bass": {
+      "scientific": "Micropterus dolomieu",
+      "length": "10-18 in",
+      "weight": "1-4 lb",
+      "about": "A hard-fighting bass renowned for explosive jumps and strength.",
+      "identification": "Bronze body with dark vertical bars and a jaw ending at the eye.",
+      "habitat": "Cool, clear rocky rivers and lakes with gravel and current.",
+      "diet": "Eats crayfish and minnows; use tube jigs, crankbaits, and soft plastics.",
+      "bestTime": "Late spring and fall; mornings around rocky structure."
+    },
+    "Spotted Bass": {
+      "scientific": "Micropterus punctulatus",
+      "length": "10-16 in",
+      "weight": "0.75-3 lb",
+      "about": "A scrappy bass of clear streams, often confused with largemouth.",
+      "identification": "Green body with a lateral stripe of diamond blotches and rows of belly spots.",
+      "habitat": "Clear, rocky streams and reservoirs with current and cover.",
+      "diet": "Eats crayfish and minnows; use jigs, crankbaits, and soft plastics.",
+      "bestTime": "Spring and fall near rocky points and drop-offs."
+    },
+    "Striped Bass": {
+      "scientific": "Morone saxatilis",
+      "length": "18-34 in",
+      "weight": "5-20 lb",
+      "about": "A powerful migratory gamefish thriving in coastal and inland waters.",
+      "identification": "Silver body with seven to eight distinct unbroken horizontal stripes.",
+      "habitat": "Open water of large reservoirs, rivers, and coastal estuaries.",
+      "diet": "Eats shad and herring; troll or cast spoons, swimbaits, and live bait.",
+      "bestTime": "Spring spawn runs and fall when baitfish school."
+    },
+    "Walleye": {
+      "scientific": "Sander vitreus",
+      "length": "14-22 in",
+      "weight": "1-4 lb",
+      "about": "A prized table fish named for its large, light-gathering glassy eyes.",
+      "identification": "Olive-gold body with a white-tipped tail and milky reflective eyes.",
+      "habitat": "Cool lakes and rivers with rocky or sandy bottoms.",
+      "diet": "Eats small fish; use jigs, minnows, crawler harnesses, and crankbaits.",
+      "bestTime": "Dawn, dusk, and overcast days; spring and fall peak."
+    },
+    "White Bass": {
+      "scientific": "Morone chrysops",
+      "length": "10-15 in",
+      "weight": "0.75-2 lb",
+      "about": "A fast schooling fish that drives aggressive feeding frenzies.",
+      "identification": "Silver body with several thin dark stripes and a deep compressed body.",
+      "habitat": "Open water of large lakes, reservoirs, and rivers.",
+      "diet": "Eats shad and minnows; use jigs, spoons, and small crankbaits.",
+      "bestTime": "Spring spawning runs up rivers and surface feeding at dawn."
+    },
+    "White Crappie": {
+      "scientific": "Pomoxis annularis",
+      "length": "7-12 in",
+      "weight": "0.5-1.5 lb",
+      "about": "A schooling panfish tolerant of murkier water than its black cousin.",
+      "identification": "Silvery body with faint vertical bars and 5-6 dorsal spines.",
+      "habitat": "Turbid lakes, reservoirs, and slow rivers with brush.",
+      "diet": "Eats minnows and insects; use small jigs, minnows, and tube baits.",
+      "bestTime": "Spring spawn near cover; dawn and dusk in warm months."
+    },
+    "White Sturgeon": {
+      "scientific": "Acipenser transmontanus",
+      "length": "48-84 in",
+      "weight": "20-100 lb",
+      "about": "North America's largest freshwater fish, an ancient long-lived giant.",
+      "identification": "Long gray body with rows of bony scutes, a blunt snout, and four barbels.",
+      "habitat": "Deep pools and channels of large western rivers and estuaries.",
+      "diet": "Eats fish, eggs, and invertebrates; use cut bait and roe on bottom.",
+      "bestTime": "Spring and fall on the bottom during regulated seasons."
+    },
+    "Yellow Perch": {
+      "scientific": "Perca flavescens",
+      "length": "7-12 in",
+      "weight": "0.25-1 lb",
+      "about": "A tasty, abundant schooling panfish popular for year-round angling.",
+      "identification": "Golden-yellow body with six to eight dark vertical bars and orange fins.",
+      "habitat": "Weedy lakes, ponds, and slow rivers with cooler water.",
+      "diet": "Eats insects and minnows; use small jigs, worms, and minnows.",
+      "bestTime": "Daytime year-round; excellent through the ice in winter."
+    }
+  }
+}

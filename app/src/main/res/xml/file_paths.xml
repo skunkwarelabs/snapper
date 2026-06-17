@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Temporary full-res photo the camera app writes into, before we copy it
+         into permanent internal storage. -->
+    <cache-path name="camera" path="camera/" />
+    <files-path name="photos" path="photos/" />
+</paths>

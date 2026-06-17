@@ -1,0 +1,29 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Release signing (never commit the keystore or its passwords)
+keystore.properties
+*.jks
+*.keystore
+
+# Claude Code workspace
+/.claude
+
+# ML training artifacts (large / regenerable — the app ships its own model in app/src/main/assets)
+/tools/venv
+/tools/fish_dataset
+/tools/fish_best.keras
+/tools/fish_model.tflite
