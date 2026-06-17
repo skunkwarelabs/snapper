@@ -7,14 +7,6 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Read the Gemini API key from local.properties (which is gitignored) so it
-// never gets committed. Falls back to an empty string if not set — the app
-// still builds and runs, it just disables auto-identification.
-val geminiApiKey: String = Properties().apply {
-    val f = rootProject.file("local.properties")
-    if (f.exists()) f.inputStream().use { load(it) }
-}.getProperty("GEMINI_API_KEY", "")
-
 // Release signing config is read from a gitignored keystore.properties (if present).
 // Without it, release builds simply go unsigned — debug builds are unaffected.
 val keystorePropsFile = rootProject.file("keystore.properties")
@@ -34,8 +26,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     signingConfigs {
@@ -75,7 +65,6 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 }
 

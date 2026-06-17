@@ -32,15 +32,8 @@ Coil · CameraX · osmdroid · TensorFlow Lite. minSdk 24 / compileSdk 35.
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Some cloud-backed features (regulations, "Around" details) read a Gemini API key from
-`local.properties`:
-
-```properties
-GEMINI_API_KEY=your_key_here
-```
-
-`local.properties` is gitignored. The app degrades gracefully (manual entry / on-device
-ID) when the key is absent.
+No API keys required — fish ID runs on-device (bundled TFLite model) and all
+species/regulations data is bundled in `app/src/main/assets`.
 
 ## License
 

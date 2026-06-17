@@ -12,7 +12,6 @@ composeBom = "2024.09.00"
 navigationCompose = "2.8.4"
 room = "2.6.1"
 coil = "2.7.0"
-generativeai = "0.9.0"
 exifinterface = "1.3.7"
 osmdroid = "6.1.20"
 
@@ -39,7 +38,6 @@ androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = 
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
-generativeai = { group = "com.google.ai.client.generativeai", name = "generativeai", version.ref = "generativeai" }
 osmdroid-android = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
 
 [plugins]
