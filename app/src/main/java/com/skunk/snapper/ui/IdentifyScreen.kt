@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -85,7 +86,8 @@ fun IdentifyScreen(vm: CatchViewModel, onLogCatch: () -> Unit, onViewRegs: (Stri
                     state,
                     onRetake = vm::clearIdentify,
                     onLog = { vm.prefillCatchFromIdentify(); onLogCatch() },
-                    onViewRegs = onViewRegs
+                    onViewRegs = onViewRegs,
+                    onChoose = vm::chooseIdSpecies
                 )
                 else -> CameraCapture(onCaptured = { vm.identifyPhoto(it) })
             }
@@ -154,7 +156,8 @@ private fun CapturedResult(
     state: IdUiState,
     onRetake: () -> Unit,
     onLog: () -> Unit,
-    onViewRegs: (String) -> Unit
+    onViewRegs: (String) -> Unit,
+    onChoose: (String) -> Unit
 ) {
     Box(Modifier.fillMaxSize()) {
         AsyncImage(
@@ -197,7 +200,7 @@ private fun CapturedResult(
                     }
                 }
 
-                state.result != null -> ResultCard(state.result, onViewRegs, onLog)
+                state.result != null -> ResultCard(state.result, onViewRegs, onLog, onChoose)
 
                 state.message != null -> Box(
                     Modifier
@@ -219,7 +222,12 @@ private fun CapturedResult(
 }
 
 @Composable
-private fun ResultCard(guess: FishGuess, onViewRegs: (String) -> Unit, onLog: () -> Unit) {
+private fun ResultCard(
+    guess: FishGuess,
+    onViewRegs: (String) -> Unit,
+    onLog: () -> Unit,
+    onChoose: (String) -> Unit
+) {
     Box(
         Modifier
             .fillMaxWidth()
@@ -249,6 +257,16 @@ private fun ResultCard(guess: FishGuess, onViewRegs: (String) -> Unit, onLog: ()
             }
             if (guess.details.isNotBlank()) {
                 Text(guess.details, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+            }
+            if (guess.alternatives.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    guess.alternatives.forEach { alt ->
+                        AssistChip(onClick = { onChoose(alt) }, label = { Text(alt) })
+                    }
+                }
             }
             Row(
                 modifier = Modifier.padding(top = 12.dp),

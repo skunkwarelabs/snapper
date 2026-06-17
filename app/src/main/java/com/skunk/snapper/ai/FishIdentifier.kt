@@ -19,7 +19,9 @@ data class FishGuess(
     /** Estimated whole pounds, number only e.g. "2" (blank if unknown). */
     val weightLb: String,
     /** Estimated remaining ounces 0–15, number only e.g. "5" (blank if unknown). */
-    val weightOz: String
+    val weightOz: String,
+    /** Other close matches (next most likely species), so the UI can offer one-tap corrections. */
+    val alternatives: List<String> = emptyList()
 )
 
 /**
@@ -32,8 +34,13 @@ object FishIdentifier {
 
     // Below this top-1 confidence we treat the photo as "not a recognizable fish".
     // The fine-tuned EfficientNetB0 (~96% val) is confident on real fish; this rejects
-    // off-distribution / non-fish photos. Tune after field-testing real phone shots.
-    private const val MIN_CONFIDENCE = 0.45f
+    // off-distribution / non-fish photos. Kept fairly low because real phone shots are
+    // off-distribution vs the iNaturalist training set — a wrong-but-confident guess is
+    // recoverable (the user can tap an alternative), a false "no fish" is just annoying.
+    private const val MIN_CONFIDENCE = 0.35f
+
+    // A runner-up must clear this to be offered as a tappable alternative.
+    private const val MIN_ALT_CONFIDENCE = 0.08f
 
     fun isAvailable(context: Context): Boolean = FishClassifier.isAvailable(context)
 
@@ -45,22 +52,42 @@ object FishIdentifier {
                     ?: error("Identifier model not available")
                 if (best.confidence < MIN_CONFIDENCE) return@runCatching noFish()
 
-                val facts = FishFacts.lookup(context, best.label)
-                val length = facts?.length?.let { midpoint(it)?.toString() } ?: ""
-                val (lb, oz) = facts?.weight?.let { weightFromRange(it) } ?: ("" to "")
-                val runnerUp = preds.getOrNull(1)?.takeIf { it.confidence > 0.15f }
-                FishGuess(
-                    isFish = true,
-                    species = best.label,
-                    confidence = confidenceLabel(best.confidence),
-                    details = runnerUp?.let { "Best match — could also be ${it.label}." }
-                        ?: "Best match from on-device recognition.",
-                    lengthEstimate = length,
-                    weightLb = lb,
-                    weightOz = oz
-                )
+                val alts = preds.drop(1)
+                    .filter { it.confidence >= MIN_ALT_CONFIDENCE }
+                    .take(2)
+                    .map { it.label }
+                buildGuess(context, best.label, confidenceLabel(best.confidence), alts)
             }
         }
+
+    /**
+     * Build a guess for an explicitly chosen species (e.g. the user tapped one of the
+     * [FishGuess.alternatives]). Confidence is blank since this is a human pick, not the model's.
+     */
+    fun guessFor(context: Context, species: String, alternatives: List<String> = emptyList()): FishGuess =
+        buildGuess(context, species, "", alternatives)
+
+    private fun buildGuess(
+        context: Context,
+        species: String,
+        confidence: String,
+        alternatives: List<String>
+    ): FishGuess {
+        val facts = FishFacts.lookup(context, species)
+        val length = facts?.length?.let { midpoint(it)?.toString() } ?: ""
+        val (lb, oz) = facts?.weight?.let { weightFromRange(it) } ?: ("" to "")
+        return FishGuess(
+            isFish = true,
+            species = species,
+            confidence = confidence,
+            details = if (alternatives.isEmpty()) "Best match from on-device recognition."
+            else "On-device match — could also be ${alternatives.joinToString(" or ")}.",
+            lengthEstimate = length,
+            weightLb = lb,
+            weightOz = oz,
+            alternatives = alternatives
+        )
+    }
 
     private fun confidenceLabel(p: Float) = when {
         p >= 0.75f -> "high"

@@ -273,6 +273,22 @@ class CatchViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
+     * The user tapped one of the result's alternatives — make that the chosen species and
+     * re-offer the rest (plus the previous pick) as alternatives, refreshing size estimates.
+     */
+    fun chooseIdSpecies(name: String) {
+        val current = _idState.value.result ?: return
+        val others = (listOf(current.species) + current.alternatives)
+            .distinct()
+            .filter { it != name }
+        val ctx = getApplication<Application>()
+        viewModelScope.launch {
+            val guess = withContext(Dispatchers.IO) { FishIdentifier.guessFor(ctx, name, others) }
+            _idState.update { it.copy(result = guess) }
+        }
+    }
+
+    /**
      * Seed the Add-Catch draft from the current identification (photo + species + size),
      * so the angler can review and save it. Navigate to the add screen afterwards.
      */

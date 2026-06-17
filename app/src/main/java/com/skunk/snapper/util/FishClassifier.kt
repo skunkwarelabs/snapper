@@ -2,6 +2,7 @@ package com.skunk.snapper.util
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import org.tensorflow.lite.Interpreter
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -49,15 +50,47 @@ object FishClassifier {
         }.onFailure { interpreter = null }  // no model bundled yet → manual fallback
     }
 
-    /** Top predictions (highest confidence first), or empty if the model isn't available. */
+    /**
+     * Top predictions (highest confidence first), or empty if the model isn't available.
+     *
+     * Uses test-time augmentation: the softmax is averaged over a few in-distribution views
+     * of the photo (the full frame, its mirror, and a center crop). The mirror matches the
+     * RandomFlip the model trained with, and the center crop sits inside its RandomZoom range
+     * while zeroing in on the (usually centered) fish — together they steady the prediction on
+     * noisy real-world phone shots for a small, cheap accuracy bump.
+     */
     fun classify(context: Context, bitmap: Bitmap): List<Prediction> {
         ensureLoaded(context)
         val itp = interpreter ?: return emptyList()
-        val output = Array(1) { FloatArray(labels.size) }
-        itp.run(preprocess(bitmap), output)
+        val n = labels.size
+        val summed = FloatArray(n)
+        var views = 0
+        for (view in ttaViews(bitmap)) {
+            val output = Array(1) { FloatArray(n) }
+            itp.run(preprocess(view), output)
+            for (i in 0 until n) summed[i] += output[0][i]
+            views++
+        }
+        if (views == 0) return emptyList()
         return labels.indices
-            .map { Prediction(labels[it], output[0][it]) }
+            .map { Prediction(labels[it], summed[it] / views) }
             .sortedByDescending { it.confidence }
+    }
+
+    /** The full frame, a horizontal mirror, and an 80% center crop (all later squished to SIZE). */
+    private fun ttaViews(src: Bitmap): List<Bitmap> {
+        val views = ArrayList<Bitmap>(3)
+        views.add(src)
+        runCatching {
+            val m = Matrix().apply { preScale(-1f, 1f) }
+            views.add(Bitmap.createBitmap(src, 0, 0, src.width, src.height, m, true))
+        }
+        runCatching {
+            val cw = (src.width * 0.8f).toInt().coerceAtLeast(1)
+            val ch = (src.height * 0.8f).toInt().coerceAtLeast(1)
+            views.add(Bitmap.createBitmap(src, (src.width - cw) / 2, (src.height - ch) / 2, cw, ch))
+        }
+        return views
     }
 
     private fun preprocess(bitmap: Bitmap): ByteBuffer {
