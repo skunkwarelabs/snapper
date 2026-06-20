@@ -1,5 +1,7 @@
 package com.skunk.snapper.ui
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -13,9 +15,12 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -42,6 +47,13 @@ fun SnapperApp() {
     val backStack by nav.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
     val showBottomBar = Tab.entries.any { it.route == currentRoute }
+
+    // App-wide: when the keyboard is dismissed, drop text-field focus so the cursor
+    // stops blinking (Compose otherwise keeps the field focused after the IME hides).
+    val focusManager = LocalFocusManager.current
+    val density = LocalDensity.current
+    val imeVisible = WindowInsets.ime.getBottom(density) > 0
+    LaunchedEffect(imeVisible) { if (!imeVisible) focusManager.clearFocus() }
 
     Scaffold(
         bottomBar = {
@@ -86,7 +98,11 @@ fun SnapperApp() {
                 )
             }
             composable(Tab.Map.route) {
-                MapScreen(vm = vm, onOpenCatch = { id -> nav.navigate("detail/$id") })
+                MapScreen(
+                    vm = vm,
+                    onOpenCatch = { id -> nav.navigate("detail/$id") },
+                    onOpenFish = { fish -> vm.openFish(fish); nav.navigate("fishDetail") }
+                )
             }
             composable(Tab.Identify.route) {
                 IdentifyScreen(

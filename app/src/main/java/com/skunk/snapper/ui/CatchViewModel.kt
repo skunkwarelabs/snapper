@@ -237,6 +237,31 @@ class CatchViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
+     * Build Regs-style cards for a list of stocked species (iFishIllinois → Illinois regs),
+     * with bundled photos + bag/size attached. Offline & instant — no network fetch.
+     */
+    suspend fun stockedFishCards(species: List<String>, state: String?): List<AreaFish> {
+        val ctx = getApplication<Application>()
+        return withContext(Dispatchers.IO) {
+            FishFacts.ensureLoaded(ctx); FishRegs.ensureLoaded(ctx)
+            species.map { name ->
+                val facts = FishFacts.lookup(ctx, name)
+                val reg = state?.let { FishRegs.lookup(ctx, it, name) }
+                AreaFish(
+                    name = name,
+                    scientificName = facts?.scientific ?: "",
+                    lengthRange = facts?.length ?: "",
+                    weightRange = facts?.weight ?: "",
+                    inSeason = reg?.let { FishRegs.isHarvestable(it) } ?: true,
+                    seasonNote = "",
+                    bagLimit = reg?.dailyBag, minSize = reg?.minLength,
+                    imageUrl = FishPhotos.assetUri(ctx, name)
+                )
+            }
+        }
+    }
+
+    /**
      * Load the full statewide regulation list for the user's location (every species in the
      * bundled dataset for their state, with photos). Resolved once per state and disk-cached —
      * no per-area re-fetching.

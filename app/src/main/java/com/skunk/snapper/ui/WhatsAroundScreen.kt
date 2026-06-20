@@ -71,6 +71,7 @@ fun WhatsAroundScreen(vm: CatchViewModel, onOpenFish: (AreaFish) -> Unit, onOpen
         coil.ImageLoader.Builder(context).networkObserverEnabled(false).build()
     }
     var query by rememberSaveable { mutableStateOf("") }
+    val listState = rememberLazyListState()
 
     val askLocation = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -102,11 +103,21 @@ fun WhatsAroundScreen(vm: CatchViewModel, onOpenFish: (AreaFish) -> Unit, onOpen
                     it.name.contains(query, ignoreCase = true) ||
                         it.scientificName.contains(query, ignoreCase = true)
                 }
-                val listState = rememberLazyListState()
                 // Start scrolled past the search bar (item 0) so it's hidden until you
                 // pull/scroll down to reveal it — iOS-style.
                 LaunchedEffect(state.fish.isNotEmpty()) {
                     if (query.isBlank()) listState.scrollToItem(1)
+                }
+                // iOS-style "catch": when a scroll settles with the search bar (item 0)
+                // only partially showing, snap it fully open or fully tucked away.
+                LaunchedEffect(listState.isScrollInProgress) {
+                    if (!listState.isScrollInProgress) {
+                        val first = listState.layoutInfo.visibleItemsInfo.firstOrNull()
+                        if (first != null && first.index == 0 && first.offset < 0 && first.size > 0) {
+                            if (-first.offset > first.size / 2) listState.animateScrollToItem(1)
+                            else listState.animateScrollToItem(0)
+                        }
+                    }
                 }
                 PullToRefreshBox(
                     isRefreshing = state.loading,
