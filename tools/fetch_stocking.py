@@ -240,6 +240,9 @@ def src_nj(cfg):  # join trout schedule (has *_ID) to names layer; species impli
 
 # --- Source registry ---
 
+# TWRA encodes species as underscore-joined codes ("brook_brown_rainbow"); map & drop junk.
+TN_CODES = {"rainbow": "Rainbow Trout", "brown": "Brown Trout", "brook": "Brook Trout"}
+
 TROUT_MAP = {"RT": "Rainbow Trout", "RBT": "Rainbow Trout", "BT": "Brown Trout",
              "BN": "Brown Trout", "BNT": "Brown Trout", "BK": "Brook Trout", "BKT": "Brook Trout",
              "EBT": "Brook Trout", "LT": "Lake Trout", "LLS": "Landlocked Salmon",
@@ -269,7 +272,7 @@ SOURCES = [
     {"st": "TN", "name": "TWRA — Trout Stocking Locations", "fn": src_arcgis_field,
      "url": "https://services3.arcgis.com/PWXNAH2YKmZY7lBq/arcgis/rest/services/TWRA_Trout_Stocking_Locations/FeatureServer/0",
      "water": "Site_Name", "species": "Species",
-     "map": {"rainbow": "Rainbow Trout", "brown": "Brown Trout", "brook": "Brook Trout"}},
+     "split": lambda s: [TN_CODES[t] for t in s.lower().split("_") if t in TN_CODES]},
     {"st": "MD", "name": "Maryland DNR — Trout Stocking", "fn": src_arcgis_field,
      "url": "https://dnr.geodata.md.gov/dnrdata/rest/services/fisheries/TroutStockingActivities/MapServer/0",
      "water": "LOCATION", "species": "Species",
