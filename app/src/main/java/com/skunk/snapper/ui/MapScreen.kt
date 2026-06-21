@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,17 +22,23 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocationCity
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.SatelliteAlt
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Water
 import androidx.compose.material.icons.filled.Waves
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -59,11 +64,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
@@ -84,9 +91,10 @@ import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.tileprovider.tilesource.OnlineTileSourceBase
 import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.GeoPoint
+import org.osmdroid.util.MapTileIndex
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
@@ -103,12 +111,13 @@ fun MapScreen(vm: CatchViewModel, onOpenCatch: (Long) -> Unit, onOpenFish: (Area
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
-    val dark = isSystemInDarkTheme()
     val catches by vm.catches.collectAsState()
     val spots by vm.spots.collectAsState()
     val focusSpot by vm.focusSpot.collectAsState()
     // A point long-pressed on the map, pending a "save this spot?" name dialog.
     var pendingDrop by remember { mutableStateOf<GeoPoint?>(null) }
+    // Map style: dark street basemap (default) or satellite imagery.
+    var mapMode by rememberSaveable { mutableStateOf(MapMode.DARK) }
 
     // When set, show a bottom sheet of stocked species: (waterName, species, stateCode/name).
     val stocked = remember { mutableStateOf<Triple<String, List<String>, String?>?>(null) }
@@ -150,14 +159,14 @@ fun MapScreen(vm: CatchViewModel, onOpenCatch: (Long) -> Unit, onOpenFish: (Area
 
     val mapView = remember {
         MapView(context).apply {
-            // Start on the basemap that matches the theme so dark mode never flashes white.
-            setTileSource(if (dark) CartoDarkTiles else TileSourceFactory.MAPNIK)
+            // Default style is the dark basemap; the mode effect below keeps it in sync.
+            setTileSource(CartoDarkTiles)
             setMultiTouchControls(true)
             // Pinch-to-zoom is enough; hide the redundant +/- buttons.
             zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
             controller.setZoom(5.0)
             controller.setCenter(GeoPoint(39.5, -98.35))
-            applyMapBackground(dark)
+            applyMapBackground(dark = true)
         }
     }
 
@@ -198,10 +207,19 @@ fun MapScreen(vm: CatchViewModel, onOpenCatch: (Long) -> Unit, onOpenFish: (Area
         }
     }
 
-    // Use a real dark basemap (CARTO dark matter) in dark mode, MAPNIK otherwise.
-    LaunchedEffect(dark) {
-        mapView.setTileSource(if (dark) CartoDarkTiles else TileSourceFactory.MAPNIK)
-        mapView.applyMapBackground(dark)
+    // Apply the chosen map style: dark CARTO basemap or Esri satellite imagery.
+    LaunchedEffect(mapMode) {
+        when (mapMode) {
+            MapMode.DARK -> {
+                mapView.setTileSource(CartoDarkTiles)
+                mapView.applyMapBackground(dark = true, lift = true)
+            }
+            MapMode.SATELLITE -> {
+                mapView.setTileSource(EsriSatelliteTiles)
+                // Don't lift shadows on photographic imagery — show it as-is.
+                mapView.applyMapBackground(dark = true, lift = false)
+            }
+        }
         mapView.invalidate()
     }
 
@@ -395,6 +413,26 @@ fun MapScreen(vm: CatchViewModel, onOpenCatch: (Long) -> Unit, onOpenFish: (Area
         snackbarHost = { SnackbarHost(snackbar) { Snackbar(it) } },
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End) {
+                // Map-style switcher (dark basemap ↔ satellite), Google-Maps style.
+                Box {
+                    var layersMenu by remember { mutableStateOf(false) }
+                    SmallFloatingActionButton(onClick = { layersMenu = true }) {
+                        Icon(Icons.Default.Layers, contentDescription = "Map style")
+                    }
+                    DropdownMenu(expanded = layersMenu, onDismissRequest = { layersMenu = false }) {
+                        MapMode.entries.forEach { m ->
+                            DropdownMenuItem(
+                                text = { Text(m.label) },
+                                leadingIcon = { Icon(m.icon, contentDescription = null) },
+                                trailingIcon = {
+                                    if (m == mapMode) Icon(Icons.Default.Check, contentDescription = null)
+                                },
+                                onClick = { mapMode = m; layersMenu = false }
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
                 SmallFloatingActionButton(onClick = {
                     val granted = ContextCompat.checkSelfPermission(
                         context, Manifest.permission.ACCESS_FINE_LOCATION
@@ -667,14 +705,14 @@ private fun blueLocationDot(): android.graphics.Bitmap {
  * Paint the map view and the tile-loading placeholders to match the theme, so the map never
  * flashes white before tiles paint. CARTO dark-matter's own background is near-black (#0E1013).
  */
-private fun MapView.applyMapBackground(dark: Boolean) {
+private fun MapView.applyMapBackground(dark: Boolean, lift: Boolean = dark) {
     val bg = if (dark) 0xFF0E1013.toInt() else 0xFFF2F2F2.toInt()
     setBackgroundColor(bg)
     overlayManager.tilesOverlay.setLoadingBackgroundColor(bg)
     overlayManager.tilesOverlay.setLoadingLineColor(bg)
     // Lift the near-black CARTO dark basemap so the *unscanned* water and land read more
-    // clearly (it's otherwise an almost-flat black). No-op (null) on the light basemap.
-    overlayManager.tilesOverlay.setColorFilter(if (dark) DarkTileLift else null)
+    // clearly (it's otherwise an almost-flat black). Off for satellite/light basemaps.
+    overlayManager.tilesOverlay.setColorFilter(if (lift) DarkTileLift else null)
 }
 
 /**
@@ -692,6 +730,28 @@ private val DarkTileLift: android.graphics.ColorFilter = android.graphics.ColorM
         )
     )
 )
+
+/** Selectable basemap style, Google-Maps-style (street/dark vs satellite). */
+private enum class MapMode(val label: String, val icon: ImageVector) {
+    DARK("Dark", Icons.Default.DarkMode),
+    SATELLITE("Satellite", Icons.Default.SatelliteAlt)
+}
+
+/**
+ * Free, no-key satellite imagery from Esri's World Imagery service. Esri serves tiles
+ * as z/y/x (not osmdroid's default z/x/y), so the URL builder is overridden.
+ */
+private val EsriSatelliteTiles = object : OnlineTileSourceBase(
+    "EsriWorldImagery", 0, 19, 256, "",
+    arrayOf("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/"),
+    "© Esri, Maxar, Earthstar Geographics"
+) {
+    override fun getTileURLString(pMapTileIndex: Long): String =
+        baseUrl +
+            MapTileIndex.getZoom(pMapTileIndex) + "/" +
+            MapTileIndex.getY(pMapTileIndex) + "/" +
+            MapTileIndex.getX(pMapTileIndex)
+}
 
 /** Free, no-key dark basemap from CARTO ("dark matter"). */
 private val CartoDarkTiles = XYTileSource(
