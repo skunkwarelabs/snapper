@@ -28,7 +28,7 @@ All data is bundled offline (no API keys, no runtime calls for this data).
   states**, shown on the **Regs** tab and in the map's water bubbles.
 - **Fish stocking data** (which species have been stocked in a lake/river — the
   "Stocked here" line when you tap a water on the map) — pulled per state from each
-  state's fish & wildlife agency, currently **24 states**. Refresh/extend with
+  state's fish & wildlife agency, currently **31 states**. Refresh/extend with
   `tools/fetch_stocking.py`.
 
 | State | Regs | Stocking |
@@ -42,14 +42,14 @@ All data is bundled offline (no API keys, no runtime calls for this data).
 | Connecticut (CT) | ✓ | — |
 | Delaware (DE) | ✓ | — |
 | Florida (FL) | ✓ | ✓ |
-| Georgia (GA) | ✓ | — |
+| Georgia (GA) | ✓ | ✓ |
 | Hawaii (HI) | ✓ | — |
 | Idaho (ID) | ✓ | ✓ |
 | Illinois (IL) | ✓ | ✓ |
 | Indiana (IN) | ✓ | ✓ |
 | Iowa (IA) | ✓ | — |
 | Kansas (KS) | ✓ | — |
-| Kentucky (KY) | ✓ | — |
+| Kentucky (KY) | ✓ | ✓ |
 | Louisiana (LA) | ✓ | — |
 | Maine (ME) | ✓ | — |
 | Maryland (MD) | ✓ | ✓ |
@@ -60,24 +60,24 @@ All data is bundled offline (no API keys, no runtime calls for this data).
 | Missouri (MO) | ✓ | — |
 | Montana (MT) | ✓ | ✓ |
 | Nebraska (NE) | ✓ | ✓ |
-| Nevada (NV) | ✓ | — |
+| Nevada (NV) | ✓ | ✓ |
 | New Hampshire (NH) | ✓ | ✓ |
 | New Jersey (NJ) | ✓ | ✓ |
 | New Mexico (NM) | ✓ | ✓ |
 | New York (NY) | ✓ | ✓ |
-| North Carolina (NC) | ✓ | — |
+| North Carolina (NC) | ✓ | ✓ |
 | North Dakota (ND) | ✓ | ✓ |
 | Ohio (OH) | ✓ | ✓ |
 | Oklahoma (OK) | ✓ | — |
-| Oregon (OR) | ✓ | — |
+| Oregon (OR) | ✓ | ✓ |
 | Pennsylvania (PA) | ✓ | ✓ |
 | Rhode Island (RI) | ✓ | ✓ |
 | South Carolina (SC) | ✓ | — |
 | South Dakota (SD) | ✓ | — |
 | Tennessee (TN) | ✓ | ✓ |
 | Texas (TX) | ✓ | — |
-| Utah (UT) | ✓ | — |
-| Vermont (VT) | ✓ | — |
+| Utah (UT) | ✓ | ✓ |
+| Vermont (VT) | ✓ | ✓ |
 | Virginia (VA) | ✓ | ✓ |
 | Washington (WA) | ✓ | ✓ |
 | West Virginia (WV) | ✓ | ✓ |

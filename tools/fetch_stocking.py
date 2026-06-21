@@ -19,9 +19,11 @@ import csv
 import io
 import json
 import os
+import re
 import sys
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from datetime import date
 
 OUT = os.path.join(
@@ -31,15 +33,19 @@ UA = "Mozilla/5.0 (Android) Snapper/1.0 (fishing app; contact marwan.ansari@gmai
 
 # States with data that exists but needs a custom scraper / is unreachable — logged, not fetched.
 SKIPPED = {
-    "TX": "per-waterbody HTML (stock_bywater.php), needs WB-code enumeration",
-    "OK": "annual PDF report", "ME": "current PDF report", "CT": "annual PDF (+ArcGIS has no species)",
-    "NC": "HTML/PDF, browser UA", "GA": "weekly PDF, no species col", "LA": "HTML news releases",
-    "KS": "Akamai bot-walled HTML", "UT": "HTML table per year", "AZ": "Google-Sheet calendar matrix",
-    "OR": "HTML table, trout-only", "AK": "HTML search results", "KY": "Google MyMaps KML (regex parse)",
-    "VT": "ASP.NET viewstate scrape",
+    "TX": "HTML scrape only (stock_bywater.php / by-species reports, no API)",
+    "OK": "annual PDF report", "ME": "PDF only; ArcGIS layer is historical heritage waters",
+    "CT": "ArcGIS stocking layers carry no species (trout in PDF only)",
+    "LA": "HTML news releases", "KS": "HTML/PDF only; public GIS is location-only",
+    "AZ": "Google-Sheet calendar matrix (annual GIDs, needs melt)",
+    "AK": "HTML search results",
     "SC": "none", "AL": "none", "MS": "none", "MO": "none (phone hotline)",
-    "CO": "only coarse category, no species", "NV": "presence codes, no events",
-    "DE": "survey data, not stocking", "HI": "none (prose only)",
+    "CO": "only coarse category, no species", "DE": "survey data, not stocking",
+    "HI": "none (prose only)",
+    "MN": "LakeFinder is species-present, not stocked; stocking is HTML/narrative only",
+    "IA": "trout-streams ArcGIS down + no species; Socrata portal retired",
+    "SD": "per-lake stocking PDFs only (index has no species)",
+    "WY": "ASP.NET WebForms tool only (viewstate scrape)",
 }
 
 
@@ -93,7 +99,7 @@ def clean(s):
 def src_arcgis_field(cfg):
     pairs = []
     xform = cfg.get("water_xform", lambda x: x)
-    for a in arcgis_rows(cfg["url"]):
+    for a in arcgis_rows(cfg["url"], cfg.get("where", "1=1")):
         w, s = clean(xform(clean(a.get(cfg["water"])))), clean(a.get(cfg["species"]))
         if not w or not s:
             continue
@@ -135,9 +141,13 @@ def src_arcgis_count(cfg):
 def src_socrata(cfg):
     data = get_json(cfg["url"] + "?$limit=500000")
     pairs = []
+    smap = cfg.get("map") or {}
     for r in data:
         w = clean(r.get(cfg["water"]) or (r.get(cfg["water_alt"]) if cfg.get("water_alt") else ""))
         s = clean(r.get(cfg["species"]))
+        if cfg.get("titlecase") and s:
+            s = s.title()
+        s = smap.get(s, s)
         if w and s:
             pairs.append((w, s))
     return pairs
@@ -238,6 +248,82 @@ def src_nj(cfg):  # join trout schedule (has *_ID) to names layer; species impli
     return pairs
 
 
+def src_or(cfg):  # ODFW: sweep the waterbody autocomplete JSON for all stocked (trout) waters
+    seen = set()
+    for ch in "abcdefghijklmnopqrstuvwxyz0123456789":
+        try:
+            d = get_json(f"{cfg['url']}?q={ch}")
+        except Exception:
+            continue
+        for r in (d or []):
+            w = clean(r.get("value") or r.get("label"))
+            if w:
+                seen.add(w)
+    return [(w, "Trout") for w in sorted(seen)]
+
+
+def src_kml(cfg):  # Google MyMaps KML export (KY): per-species columns in <ExtendedData>
+    raw = get_text(cfg["url"])
+    raw = re.sub(r'\sxmlns(:\w+)?="[^"]+"', "", raw)  # strip namespaces for easy parsing
+    root = ET.fromstring(raw)
+    smap = cfg.get("map") or {}
+    skip = {"longitude", "latitude", "name", "description", "gx_media_links"}
+    pairs = []
+    for pm in root.iter("Placemark"):
+        nm = clean(pm.findtext("name"))
+        # Name is "<Waterbody>: <access site>" — keep just the waterbody.
+        water = clean(nm.split(":")[0]) if cfg.get("split_name") else nm
+        ed = pm.find("ExtendedData")
+        if not water or ed is None:
+            continue
+        for d in ed.findall("Data"):
+            field = (d.get("name") or "").strip()
+            if field.lower() in skip:
+                continue
+            if not clean(d.findtext("value")):  # empty = not stocked here
+                continue
+            sp = smap.get(field, field)
+            if sp:
+                pairs.append((water, sp))
+    return pairs
+
+
+def src_nv(cfg):  # NDOW WordPress events API: one call per month, parse "Water – Count Species"
+    pairs = []
+    for yr in range(2021, date.today().year + 1):
+        for mo in range(1, 13):
+            try:
+                d = get_json(f"{cfg['url']}/{mo:02d}/{yr}")
+            except Exception:
+                continue
+            recs = d if isinstance(d, list) else d.get("events", d.get("data", []))
+            for r in recs:
+                if "stocking" not in json.dumps(r.get("category", "")).lower():
+                    continue
+                title = clean(r.get("title"))
+                # Anchor on the trailing "<dash> <count> <species>" so dashes/commas inside the
+                # waterbody name (e.g. "Mountain View Pond, Lyon Co. – 5000 Cutthroat Trout") don't
+                # split it wrongly.
+                m = re.search(r"[–—-]\s*[\d,]+\s+(.+?)\s*$", title)
+                if not m:
+                    continue
+                water = title[:m.start()].strip().strip("–—-").strip()
+                raw_sp = clean(m.group(1))
+                if not water or not raw_sp:
+                    continue
+                for part in raw_sp.split(","):  # multi-species: "Largemouth Bass, 27 Green Sunfish"
+                    part = re.sub(r"^\s*[\d,]+\s+", "", part).strip()  # strip any leading count
+                    # "Brown and Rainbow Trout" -> ["Brown Trout", "Rainbow Trout"].
+                    cm = re.match(r"(\w+) and (\w+) (Trout|Bass|Catfish)$", part)
+                    cands = ([f"{cm.group(1)} {cm.group(3)}", f"{cm.group(2)} {cm.group(3)}"]
+                             if cm else [part])
+                    for sp in cands:
+                        sp = NV_MAP.get(sp, sp)
+                        if sp:
+                            pairs.append((water, sp))
+    return pairs
+
+
 # --- Source registry ---
 
 # TWRA encodes species as underscore-joined codes ("brook_brown_rainbow"); map & drop junk.
@@ -245,9 +331,22 @@ TN_CODES = {"rainbow": "Rainbow Trout", "brown": "Brown Trout", "brook": "Brook 
 
 TROUT_MAP = {"RT": "Rainbow Trout", "RBT": "Rainbow Trout", "BT": "Brown Trout",
              "BN": "Brown Trout", "BNT": "Brown Trout", "BK": "Brook Trout", "BKT": "Brook Trout",
-             "EBT": "Brook Trout", "LT": "Lake Trout", "LLS": "Landlocked Salmon",
+             "EBT": "Brook Trout", "LT": "Lake Trout", "LAT": "Lake Trout", "LLS": "Landlocked Salmon",
+             "LAS": "Landlocked Salmon", "STT": "Steelhead", "TGT": "Tiger Trout",
              "Rainbow": "Rainbow Trout", "Brown": "Brown Trout", "Brook": "Brook Trout",
              "Golden": "Golden Rainbow Trout", "Tiger": "Tiger Trout"}
+
+# Nevada event titles use short species names; normalize to the app's canonical names.
+NV_MAP = {"Rainbow": "Rainbow Trout", "Wiper": "Hybrid Striped Bass", "Wipers": "Hybrid Striped Bass",
+          "Muskie": "Tiger Muskellunge", "Cutbow": "Rainbow Trout", "Cutbow Trout": "Rainbow Trout"}
+
+# Utah Socrata species are uppercase, "Group Modifier" order ("PERCH YELLOW", "SUCKER JUNE");
+# titlecased first, then mapped to the app's canonical names.
+UT_MAP = {"Rainbow": "Rainbow Trout", "All Trout": "Trout", "Cutthroat": "Cutthroat Trout",
+          "Muskie Tiger": "Tiger Muskellunge", "Perch Yellow": "Yellow Perch", "Sucker June": "June Sucker",
+          "Wiper": "Hybrid Striped Bass", "Bass Largemouth": "Largemouth Bass",
+          "Bass Smallmouth": "Smallmouth Bass", "Bass Striped": "Striped Bass",
+          "Catfish Channel": "Channel Catfish", "Salmon Kokanee": "Kokanee"}
 
 SOURCES = [
     {"st": "IL", "name": "iFishIllinois — IDNR Division of Fisheries", "fn": src_il,
@@ -333,6 +432,30 @@ SOURCES = [
          ("https://mapsdep.nj.gov/arcgis/rest/services/Features/Environmental_admin/MapServer/38",
           "https://mapsdep.nj.gov/arcgis/rest/services/Features/Environmental_admin/MapServer/35", "STREAM_ID"),
      ]},
+    {"st": "VT", "name": "Vermont Fish & Wildlife — Fish Stocking Locations", "fn": src_arcgis_field,
+     "url": "https://anrmaps.vermont.gov/arcgis/rest/services/map_services/MAP_ANR_ANRATLASFISHWILDLIFE_WM_NOCACHE/MapServer/52",
+     "water": "Waterbody", "species": "Species",  # field packs codes comma-joined: "RBT, BNT"
+     "split": lambda s: s.split(","), "map": {**TROUT_MAP, "WAE": "Walleye"}},
+    {"st": "GA", "name": "Georgia DNR WRD — Stocked Trout Streams", "fn": src_arcgis_field,
+     "url": "https://services6.arcgis.com/9QlSLDqa0P1cHLhu/arcgis/rest/services/Georgia_Trout_Streams_Public_Download_All_Layers/FeatureServer/1",
+     "water": "Name", "species": "Hvy_stock", "where": "Hvy_stock='Yes'", "force_species": "Trout"},
+    {"st": "NC", "name": "NCWRC — Public Mountain Trout Waters (stocked)", "fn": src_arcgis_field,
+     "url": "https://gis11.services.ncdot.gov/arcgis/rest/services/NCDOTApp_ESM/NCDOT_WRCPMTWStreams/MapServer/0",
+     "water": "Displ_Name", "species": "FIRST_WRC_",
+     "where": "FIRST_WRC_ IN ('Hatchery Supported Trout Waters','Delayed Harvest Trout Waters')",
+     "force_species": "Trout"},
+    {"st": "KY", "name": "Kentucky Dept of Fish & Wildlife Resources — Stocking", "fn": src_kml,
+     "url": "https://www.google.com/maps/d/kml?mid=1w2nRfFaOcYg6aY_6AD8BuiceufgpK1k&forcekml=1",
+     "split_name": True,
+     "map": {"Hybrid Striped Bass R": "Hybrid Striped Bass", "Muskellunge Fry": "Muskellunge",
+             "Walleye (native)": "Walleye"}},
+    {"st": "UT", "name": "Utah DWR — Fish Stocking (2019)", "fn": src_socrata,
+     "url": "https://opendata.utah.gov/resource/fqu2-6uq5.json", "water": "water_name",
+     "species": "species", "titlecase": True, "map": UT_MAP},
+    {"st": "NV", "name": "Nevada Dept of Wildlife — Stocking Events", "fn": src_nv,
+     "url": "https://www.ndow.org/wp-json/taa/v1/events"},
+    {"st": "OR", "name": "Oregon Dept of Fish & Wildlife — Trout Stocking", "fn": src_or,
+     "url": "https://myodfw.com/stocking/waterbody_autocomplete"},
 ]
 
 
