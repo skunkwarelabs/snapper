@@ -9,6 +9,7 @@ import com.skunk.snapper.ai.FishGuess
 import com.skunk.snapper.ai.FishIdentifier
 import com.skunk.snapper.data.Catch
 import com.skunk.snapper.data.SnapperDatabase
+import com.skunk.snapper.data.Spot
 import com.skunk.snapper.util.AreaFishStore
 import com.skunk.snapper.util.FishFacts
 import com.skunk.snapper.util.FishPhotos
@@ -86,9 +87,59 @@ data class IdUiState(
 class CatchViewModel(app: Application) : AndroidViewModel(app) {
 
     private val dao = SnapperDatabase.get(app).catchDao()
+    private val spotDao = SnapperDatabase.get(app).spotDao()
 
     val catches: StateFlow<List<Catch>> = dao.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** All saved fishing spots — shown both on the Map (⭐) and in the Favorites tab. */
+    val spots: StateFlow<List<Spot>> = spotDao.observeAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** A spot the Favorites tab asked the Map to fly to; the Map consumes and clears it. */
+    private val _focusSpot = MutableStateFlow<Spot?>(null)
+    val focusSpot: StateFlow<Spot?> = _focusSpot.asStateFlow()
+
+    fun focusOnSpot(spot: Spot) { _focusSpot.value = spot }
+    fun consumeFocusSpot() { _focusSpot.value = null }
+
+    /**
+     * Save a fishing spot at [lat]/[lng]. If [name] is blank, derive a fallback name from the
+     * nearest named water/place so the pin still reads as something meaningful.
+     */
+    fun saveSpot(lat: Double, lng: Double, name: String = "") {
+        viewModelScope.launch {
+            val auto = if (name.isBlank()) withContext(Dispatchers.IO) { deriveSpotName(lat, lng) } else ""
+            spotDao.insert(
+                Spot(
+                    name = name.trim(), autoName = auto,
+                    lat = lat, lng = lng, createdAt = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    fun renameSpot(spot: Spot, name: String) {
+        viewModelScope.launch { spotDao.update(spot.copy(name = name.trim())) }
+    }
+
+    fun deleteSpot(spot: Spot) {
+        viewModelScope.launch { spotDao.delete(spot) }
+    }
+
+    /** Reverse-geocode to a human label for an unnamed spot (feature/water, then locale). */
+    private fun deriveSpotName(lat: Double, lng: Double): String {
+        val addr = runCatching {
+            @Suppress("DEPRECATION")
+            android.location.Geocoder(getApplication(), java.util.Locale.US)
+                .getFromLocation(lat, lng, 1)?.firstOrNull()
+        }.getOrNull() ?: return ""
+        val feature = addr.featureName?.takeIf { it.isNotBlank() && !it.all(Char::isDigit) }
+        return feature
+            ?: addr.locality
+            ?: addr.subAdminArea
+            ?: listOfNotNull(addr.subAdminArea, addr.adminArea).joinToString(", ").ifBlank { "" }
+    }
 
     private val _add = MutableStateFlow(AddUiState())
     val add: StateFlow<AddUiState> = _add.asStateFlow()

@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Water
 import androidx.compose.material.icons.filled.Waves
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -39,9 +40,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Snackbar
@@ -70,6 +73,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.skunk.snapper.ai.AreaFish
 import com.skunk.snapper.data.Catch
+import com.skunk.snapper.data.Spot
 import com.skunk.snapper.util.LocationProvider
 import com.skunk.snapper.water.WaterFeature
 import com.skunk.snapper.water.WaterFinder
@@ -101,6 +105,10 @@ fun MapScreen(vm: CatchViewModel, onOpenCatch: (Long) -> Unit, onOpenFish: (Area
     val snackbar = remember { SnackbarHostState() }
     val dark = isSystemInDarkTheme()
     val catches by vm.catches.collectAsState()
+    val spots by vm.spots.collectAsState()
+    val focusSpot by vm.focusSpot.collectAsState()
+    // A point long-pressed on the map, pending a "save this spot?" name dialog.
+    var pendingDrop by remember { mutableStateOf<GeoPoint?>(null) }
 
     // When set, show a bottom sheet of stocked species: (waterName, species, stateCode/name).
     val stocked = remember { mutableStateOf<Triple<String, List<String>, String?>?>(null) }
@@ -163,14 +171,20 @@ fun MapScreen(vm: CatchViewModel, onOpenCatch: (Long) -> Unit, onOpenFish: (Area
         )
     }
 
-    // Tapping anywhere on the map (not on a feature) dismisses any open water bubble.
+    val spotInfoWindow = remember { SpotInfoWindow(mapView) }
+
+    // Tapping anywhere on the map (not on a feature) dismisses any open bubble; a long-press
+    // on empty map offers to save that point as a spot.
     val tapToClose = remember {
         MapEventsOverlay(object : MapEventsReceiver {
             override fun singleTapConfirmedHelper(p: GeoPoint?): Boolean {
                 InfoWindow.closeAllInfoWindowsOn(mapView)
                 return false  // don't consume — let feature taps still open their bubble
             }
-            override fun longPressHelper(p: GeoPoint?): Boolean = false
+            override fun longPressHelper(p: GeoPoint?): Boolean {
+                p?.let { pendingDrop = it }
+                return true
+            }
         })
     }
 
@@ -340,10 +354,32 @@ fun MapScreen(vm: CatchViewModel, onOpenCatch: (Long) -> Unit, onOpenFish: (Area
 
     // Plot saved catches as pins; redraw when the list changes.
     LaunchedEffect(catches) {
-        // Remove only catch pins — leave water name labels (also Markers) in place.
-        mapView.overlays.removeAll { it is Marker && it !is WaterLabel }
+        // Remove only catch pins — leave water name labels and spot stars (also Markers) in place.
+        mapView.overlays.removeAll { it is Marker && it !is WaterLabel && it !is SpotMarker }
         catches.forEach { c -> markerFor(mapView, c, onOpenCatch)?.let { mapView.overlays.add(it) } }
         mapView.invalidate()
+    }
+
+    // Plot saved spots as ⭐ stars; redraw when the list changes. Tapping one opens its
+    // name bubble.
+    LaunchedEffect(spots) {
+        mapView.overlays.removeAll { it is SpotMarker }
+        spots.forEach { s -> mapView.overlays.add(spotMarkerFor(mapView, s, spotInfoWindow)) }
+        mapView.invalidate()
+    }
+
+    // When the Favorites tab asks to show a spot, fly there and pop its bubble.
+    LaunchedEffect(focusSpot) {
+        focusSpot?.let { s ->
+            mapView.controller.setZoom(15.0)
+            mapView.controller.animateTo(GeoPoint(s.lat, s.lng))
+            mapView.postDelayed({
+                mapView.overlays.filterIsInstance<SpotMarker>()
+                    .firstOrNull { it.spotId == s.id }
+                    ?.let { it.showInfoWindow() }
+            }, 700)
+            vm.consumeFocusSpot()
+        }
     }
 
     // osmdroid lifecycle.
@@ -478,6 +514,31 @@ fun MapScreen(vm: CatchViewModel, onOpenCatch: (Long) -> Unit, onOpenFish: (Area
                 }
             }
         }
+    }
+
+    // Long-pressed a point on the map → offer to save it as a spot (optional name).
+    pendingDrop?.let { point ->
+        var name by remember(point) { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { pendingDrop = null },
+            title = { Text("Save this spot") },
+            text = {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    singleLine = true,
+                    label = { Text("Name (optional)") },
+                    placeholder = { Text("e.g. The honey hole") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.saveSpot(point.latitude, point.longitude, name)
+                    pendingDrop = null
+                }) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { pendingDrop = null }) { Text("Cancel") } }
+        )
     }
 
 }
@@ -643,6 +704,48 @@ private val CartoDarkTiles = XYTileSource(
     ),
     "© OpenStreetMap contributors © CARTO"
 )
+
+/** A saved-spot star marker (subclass so catch/water redraws can tell it apart). */
+private class SpotMarker(map: MapView, val spotId: Long) : Marker(map)
+
+private fun spotMarkerFor(mapView: MapView, spot: Spot, window: SpotInfoWindow): SpotMarker =
+    SpotMarker(mapView, spot.id).apply {
+        position = GeoPoint(spot.lat, spot.lng)
+        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+        icon = android.graphics.drawable.BitmapDrawable(mapView.resources, starPin)
+        title = spot.displayName
+        infoWindow = window
+        // Open this spot's name bubble on tap (and consume the tap).
+        setOnMarkerClickListener { m, _ -> m.showInfoWindow(); true }
+    }
+
+/** A gold five-point star with a dark outline, used to plot saved spots. Drawn once. */
+private val starPin: android.graphics.Bitmap by lazy {
+    val s = 72
+    val bmp = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bmp)
+    val cx = s / 2f; val cy = s / 2f
+    val outer = s * 0.46f; val inner = outer * 0.42f
+    val path = android.graphics.Path()
+    for (i in 0 until 10) {
+        val r = if (i % 2 == 0) outer else inner
+        // Start at the top point (−90°) and step every 36°.
+        val a = Math.toRadians((i * 36 - 90).toDouble())
+        val x = cx + r * Math.cos(a).toFloat()
+        val y = cy + r * Math.sin(a).toFloat()
+        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    }
+    path.close()
+    val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+    paint.style = android.graphics.Paint.Style.FILL
+    paint.color = 0xFFFFC107.toInt()  // amber/gold
+    canvas.drawPath(path, paint)
+    paint.style = android.graphics.Paint.Style.STROKE
+    paint.strokeWidth = s * 0.06f
+    paint.color = 0xDD06121A.toInt()  // dark outline so it reads on bright water
+    canvas.drawPath(path, paint)
+    bmp
+}
 
 private fun markerFor(mapView: MapView, catch: Catch, onOpenCatch: (Long) -> Unit): Marker? {
     val lat = catch.lat ?: return null

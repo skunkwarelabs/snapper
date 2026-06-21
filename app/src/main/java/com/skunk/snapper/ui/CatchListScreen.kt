@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Phishing
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.Card
@@ -58,7 +59,8 @@ import java.util.Locale
 fun CatchListScreen(
     vm: CatchViewModel,
     onAddCatch: () -> Unit,
-    onOpenCatch: (Long) -> Unit
+    onOpenCatch: (Long) -> Unit,
+    onOpenStats: () -> Unit
 ) {
     val catches by vm.catches.collectAsState()
     var sortField by remember { mutableStateOf(SortField.NEWEST) }
@@ -83,6 +85,9 @@ fun CatchListScreen(
             TopAppBar(
                 title = { Text("Catches") },
                 actions = {
+                    IconButton(onClick = onOpenStats) {
+                        Icon(Icons.Default.Leaderboard, contentDescription = "Stats")
+                    }
                     var menuOpen by remember { mutableStateOf(false) }
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(Icons.Default.Sort, contentDescription = "Sort catches")

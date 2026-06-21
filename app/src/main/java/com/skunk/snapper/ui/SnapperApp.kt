@@ -6,9 +6,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Gavel
-import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -36,7 +36,7 @@ private enum class Tab(val route: String, val label: String, val icon: ImageVect
     Map("map", "Go Fish", Icons.Filled.Map),
     Identify("identify", "Identify", Icons.Filled.PhotoCamera),
     Around("around", "Regs", Icons.Filled.Gavel),
-    Stats("stats", "Stats", Icons.Filled.Leaderboard)
+    Favorites("favorites", "Favorites", Icons.Filled.Star)
 }
 
 @Composable
@@ -94,7 +94,8 @@ fun SnapperApp() {
                         vm.startNewCatch()
                         nav.navigate("add")
                     },
-                    onOpenCatch = { id -> nav.navigate("detail/$id") }
+                    onOpenCatch = { id -> nav.navigate("detail/$id") },
+                    onOpenStats = { nav.navigate("stats") }
                 )
             }
             composable(Tab.Map.route) {
@@ -124,17 +125,24 @@ fun SnapperApp() {
             composable("credits") {
                 CreditsScreen(onBack = { nav.popBackStack() })
             }
-            composable(Tab.Stats.route) {
-                StatsScreen(
+            composable(Tab.Favorites.route) {
+                FavoritesScreen(
                     vm = vm,
-                    onOpenCatches = {
-                        nav.navigate(Tab.Catches.route) {
+                    onOpenSpot = { spot ->
+                        vm.focusOnSpot(spot)
+                        nav.navigate(Tab.Map.route) {
                             popUpTo(nav.graph.findStartDestination().id) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
                         }
-                    },
-                    onOpenCatch = { id -> nav.navigate("detail/$id") }
+                    }
+                )
+            }
+            composable("stats") {
+                StatsScreen(
+                    vm = vm,
+                    onOpenCatch = { id -> nav.navigate("detail/$id") },
+                    onBack = { nav.popBackStack() }
                 )
             }
             composable("add") {

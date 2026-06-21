@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Phishing
 import androidx.compose.material.icons.filled.Scale
@@ -24,6 +25,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -44,14 +46,23 @@ import com.skunk.snapper.data.Catch
 @Composable
 fun StatsScreen(
     vm: CatchViewModel,
-    onOpenCatches: () -> Unit,
-    onOpenCatch: (Long) -> Unit
+    onOpenCatch: (Long) -> Unit,
+    onBack: () -> Unit
 ) {
     val catches by vm.catches.collectAsState()
     val stats = remember(catches) { computeStats(catches) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Stats") }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Stats") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
     ) { padding ->
         if (catches.isEmpty()) {
             Box(
@@ -79,7 +90,7 @@ fun StatsScreen(
             // Totals
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    SummaryCard("Catches", stats.total.toString(), Modifier.weight(1f), onClick = onOpenCatches)
+                    SummaryCard("Catches", stats.total.toString(), Modifier.weight(1f), onClick = onBack)
                     SummaryCard("Species", stats.speciesCount.toString(), Modifier.weight(1f))
                 }
             }

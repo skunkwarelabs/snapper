@@ -68,6 +68,11 @@ android {
     }
 }
 
+// Export Room schemas so migrations can be written against the exact generated DDL.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
 
     implementation(libs.androidx.core.ktx)
