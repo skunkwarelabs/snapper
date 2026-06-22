@@ -1,0 +1,9 @@
+Snapper is an offline-friendly fishing companion.
+
+* Log your catches with a photo, species, length/weight, time and GPS location.
+* Identify fish from a photo with an on-device classifier — no network needed.
+* Find fishable water near you on an OpenStreetMap map, with rivers, lakes and streams highlighted.
+* Look up bag and size limits for all 50 US states plus D.C., and see which species are stocked where.
+* Save and revisit your favorite fishing spots.
+
+All your data stays on your device — no account, no servers, no tracking, no ads.
