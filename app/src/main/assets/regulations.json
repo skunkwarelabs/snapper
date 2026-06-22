@@ -194,6 +194,25 @@
         {"name": "Brook Trout", "dailyBag": "6", "minLength": "None", "notes": "4 in fly-fishing-only waters"}
       ]
     },
+    "District of Columbia": {
+      "stateCode": "DC",
+      "source": "https://doee.dc.gov/service/regulated-fishing-activities",
+      "lastVerified": "2026",
+      "species": [
+        {"name": "Largemouth Bass", "dailyBag": "5 combined", "minLength": "12 in", "notes": "15 in min Mar 1-Jun 15; 5 black bass combined with smallmouth"},
+        {"name": "Smallmouth Bass", "dailyBag": "5 combined", "minLength": "12 in", "notes": "15 in min Mar 1-Jun 15; 5 black bass combined with largemouth"},
+        {"name": "Striped Bass", "dailyBag": "1", "minLength": "19 in", "notes": "Open season only (~May-Dec); slot 19-24 in, none over 24 in"},
+        {"name": "Channel Catfish", "dailyBag": "3", "minLength": "12 in", "notes": ""},
+        {"name": "Yellow Perch", "dailyBag": "3", "minLength": "8 in", "notes": ""},
+        {"name": "Walleye", "dailyBag": "1", "minLength": "14 in", "notes": ""},
+        {"name": "American Eel", "dailyBag": "10", "minLength": "6 in", "notes": ""},
+        {"name": "Chain Pickerel", "dailyBag": "0", "minLength": "None", "notes": "Harvest and possession prohibited"},
+        {"name": "Northern Pike", "dailyBag": "0", "minLength": "None", "notes": "Harvest and possession prohibited"},
+        {"name": "American Shad", "dailyBag": "0", "minLength": "None", "notes": "Harvest and possession prohibited"},
+        {"name": "Sturgeon", "dailyBag": "0", "minLength": "None", "notes": "Protected; harvest and possession prohibited"},
+        {"name": "Northern Snakehead", "dailyBag": "No limit", "minLength": "None", "notes": "Invasive - do not release; kill if caught"}
+      ]
+    },
     "Florida": {
       "stateCode": "FL",
       "source": "https://myfwc.com/fishing/freshwater/regulations/general/",

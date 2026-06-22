@@ -25,7 +25,7 @@ Built by **SkunkWare**. The name is a pun — *snapper* the fish, *snapping* the
 All data is bundled offline (no API keys, no runtime calls for this data).
 
 - **Fishing regulations** (bag/size limits, in-season status) — bundled for **all 50
-  states**, shown on the **Regs** tab and in the map's water bubbles.
+  states plus D.C.**, shown on the **Regs** tab and in the map's water bubbles.
 - **Fish stocking data** (which species have been stocked in a lake/river — the
   "Stocked here" line when you tap a water on the map) — pulled per state from each
   state's fish & wildlife agency, currently **31 states**. Refresh/extend with
@@ -41,6 +41,7 @@ All data is bundled offline (no API keys, no runtime calls for this data).
 | Colorado (CO) | ✓ | — |
 | Connecticut (CT) | ✓ | — |
 | Delaware (DE) | ✓ | — |
+| District of Columbia (DC) | ✓ | — |
 | Florida (FL) | ✓ | ✓ |
 | Georgia (GA) | ✓ | ✓ |
 | Hawaii (HI) | ✓ | — |
