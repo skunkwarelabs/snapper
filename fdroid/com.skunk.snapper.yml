@@ -8,15 +8,13 @@ WebSite: https://skunkware.net/apps/snapper
 SourceCode: https://github.com/skunkwarelabs/snapper
 IssueTracker: https://github.com/skunkwarelabs/snapper/issues
 
-AutoName: Snapper
-
 RepoType: git
 Repo: https://github.com/skunkwarelabs/snapper.git
 
 Builds:
   - versionName: '1.0'
     versionCode: 1
-    commit: '1.0'
+    commit: 64199dbd11fba37d86238c4a33475c5b49bc80b2
     subdir: app
     gradle:
       - yes
