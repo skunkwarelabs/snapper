@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.skunk.snapper.ai.AreaFish
+import com.skunk.snapper.util.FishRegs
 import com.skunk.snapper.util.LocationProvider
 
 /** Shows fish native/common to the angler's area: photo, size ranges, and season. */
@@ -100,7 +101,8 @@ fun WhatsAroundScreen(vm: CatchViewModel, onOpenFish: (AreaFish) -> Unit, onOpen
         when {
             state.fish.isNotEmpty() -> {
                 val filtered = state.fish.filter {
-                    it.name.contains(query, ignoreCase = true) ||
+                    // Fuzzy: aliases let "muskie" find Muskellunge, "rockfish" find Striped Bass, etc.
+                    FishRegs.matchesQuery(it.name, query) ||
                         it.scientificName.contains(query, ignoreCase = true)
                 }
                 // Start scrolled past the search bar (item 0) so it's hidden until you

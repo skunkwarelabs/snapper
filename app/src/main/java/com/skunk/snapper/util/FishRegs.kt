@@ -184,6 +184,21 @@ object FishRegs {
         return true
     }
 
+    /**
+     * Fuzzy name match for search boxes: does [query] match [speciesName], allowing common-name
+     * aliases? So "muskie"/"musky" find Muskellunge, "rockfish"/"striper" find Striped Bass,
+     * "bream" finds Bluegill, etc. A blank query matches everything.
+     */
+    fun matchesQuery(speciesName: String, query: String): Boolean {
+        val q = normalize(query)
+        if (q.isBlank()) return true
+        val name = normalize(speciesName)
+        if (name.contains(q)) return true                    // plain substring on the real name
+        val canon = canonicalSpecies(speciesName)            // this fish's canonical name
+        // Match if any alias that points at this fish contains the query ("musk" -> muskie -> Muskellunge).
+        return aliases.any { (alias, target) -> normalize(target) == canon && alias.contains(q) }
+    }
+
     /** Resolve a common name to its canonical (normalized) dataset name via the alias table. */
     private fun canonicalSpecies(name: String): String {
         val n = normalize(name)
