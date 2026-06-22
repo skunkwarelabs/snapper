@@ -107,7 +107,12 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(vm: CatchViewModel, onOpenCatch: (Long) -> Unit, onOpenFish: (AreaFish) -> Unit) {
+fun MapScreen(
+    vm: CatchViewModel,
+    onOpenCatch: (Long) -> Unit,
+    onOpenFish: (AreaFish) -> Unit,
+    onOpenFavorites: () -> Unit
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
@@ -179,8 +184,6 @@ fun MapScreen(vm: CatchViewModel, onOpenCatch: (Long) -> Unit, onOpenFish: (Area
             onOpenStocked = { name, species, state -> stocked.value = Triple(name, species, state) }
         )
     }
-
-    val spotInfoWindow = remember { SpotInfoWindow(mapView) }
 
     // Tapping anywhere on the map (not on a feature) dismisses any open bubble; a long-press
     // on empty map offers to save that point as a spot.
@@ -378,24 +381,19 @@ fun MapScreen(vm: CatchViewModel, onOpenCatch: (Long) -> Unit, onOpenFish: (Area
         mapView.invalidate()
     }
 
-    // Plot saved spots as ⭐ stars; redraw when the list changes. Tapping one opens its
-    // name bubble.
+    // Plot saved spots as ⭐ pins; redraw when the list changes. Tapping one jumps to the
+    // Favorites tab (no bubble).
     LaunchedEffect(spots) {
         mapView.overlays.removeAll { it is SpotMarker }
-        spots.forEach { s -> mapView.overlays.add(spotMarkerFor(mapView, s, spotInfoWindow)) }
+        spots.forEach { s -> mapView.overlays.add(spotMarkerFor(mapView, s, onOpenFavorites)) }
         mapView.invalidate()
     }
 
-    // When the Favorites tab asks to show a spot, fly there and pop its bubble.
+    // When the Favorites tab asks to show a spot, fly there.
     LaunchedEffect(focusSpot) {
         focusSpot?.let { s ->
             mapView.controller.setZoom(15.0)
             mapView.controller.animateTo(GeoPoint(s.lat, s.lng))
-            mapView.postDelayed({
-                mapView.overlays.filterIsInstance<SpotMarker>()
-                    .firstOrNull { it.spotId == s.id }
-                    ?.let { it.showInfoWindow() }
-            }, 700)
             vm.consumeFocusSpot()
         }
     }
@@ -768,42 +766,57 @@ private val CartoDarkTiles = XYTileSource(
 /** A saved-spot star marker (subclass so catch/water redraws can tell it apart). */
 private class SpotMarker(map: MapView, val spotId: Long) : Marker(map)
 
-private fun spotMarkerFor(mapView: MapView, spot: Spot, window: SpotInfoWindow): SpotMarker =
+private fun spotMarkerFor(mapView: MapView, spot: Spot, onOpenFavorites: () -> Unit): SpotMarker =
     SpotMarker(mapView, spot.id).apply {
         position = GeoPoint(spot.lat, spot.lng)
-        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         icon = android.graphics.drawable.BitmapDrawable(mapView.resources, starPin)
         title = spot.displayName
-        infoWindow = window
-        // Open this spot's name bubble on tap (and consume the tap).
-        setOnMarkerClickListener { m, _ -> m.showInfoWindow(); true }
+        // Tapping a spot pin jumps to the Favorites list (no bubble).
+        setOnMarkerClickListener { _, _ -> onOpenFavorites(); true }
     }
 
-/** A gold five-point star with a dark outline, used to plot saved spots. Drawn once. */
+/** Yellow map-pin with a white star, used to plot saved spots (mirrors the green catch pin). */
 private val starPin: android.graphics.Bitmap by lazy {
-    val s = 72
-    val bmp = android.graphics.Bitmap.createBitmap(s, s, android.graphics.Bitmap.Config.ARGB_8888)
+    val w = 88; val h = 112
+    val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
     val canvas = android.graphics.Canvas(bmp)
-    val cx = s / 2f; val cy = s / 2f
-    val outer = s * 0.46f; val inner = outer * 0.42f
-    val path = android.graphics.Path()
-    for (i in 0 until 10) {
-        val r = if (i % 2 == 0) outer else inner
-        // Start at the top point (−90°) and step every 36°.
-        val a = Math.toRadians((i * 36 - 90).toDouble())
-        val x = cx + r * Math.cos(a).toFloat()
-        val y = cy + r * Math.sin(a).toFloat()
-        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-    }
-    path.close()
     val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-    paint.style = android.graphics.Paint.Style.FILL
-    paint.color = 0xFFFFC107.toInt()  // amber/gold
-    canvas.drawPath(path, paint)
-    paint.style = android.graphics.Paint.Style.STROKE
-    paint.strokeWidth = s * 0.06f
-    paint.color = 0xDD06121A.toInt()  // dark outline so it reads on bright water
-    canvas.drawPath(path, paint)
+    val cx = w / 2f
+    val r = w * 0.42f
+    val cy = r + 4f
+    val yellow = 0xFFFFC107.toInt()
+
+    // Pin body: one smooth solid-yellow teardrop (same silhouette as the catch pin).
+    paint.color = yellow
+    canvas.drawPath(
+        android.graphics.Path().apply {
+            moveTo(cx, h - 1f)                                       // tip (anchor point)
+            quadTo(cx - r * 1.05f, cy + r * 0.55f, cx - r, cy)       // up the left side
+            arcTo(android.graphics.RectF(cx - r, cy - r, cx + r, cy + r), 180f, 180f, false)  // over the top
+            quadTo(cx + r * 1.05f, cy + r * 0.55f, cx, h - 1f)       // down the right side
+            close()
+        },
+        paint
+    )
+
+    // White five-point star centered in the head.
+    paint.color = android.graphics.Color.WHITE
+    val outer = r * 0.62f
+    val inner = outer * 0.40f
+    canvas.drawPath(
+        android.graphics.Path().apply {
+            for (i in 0 until 10) {
+                val rad = if (i % 2 == 0) outer else inner
+                val a = Math.toRadians((i * 36 - 90).toDouble())  // top point first, every 36°
+                val x = cx + (rad * Math.cos(a)).toFloat()
+                val y = cy + (rad * Math.sin(a)).toFloat()
+                if (i == 0) moveTo(x, y) else lineTo(x, y)
+            }
+            close()
+        },
+        paint
+    )
     bmp
 }
 

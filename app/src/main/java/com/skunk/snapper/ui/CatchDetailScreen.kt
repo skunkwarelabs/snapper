@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -53,7 +54,8 @@ import java.io.File
 fun CatchDetailScreen(
     vm: CatchViewModel,
     catchId: Long,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onEdit: () -> Unit
 ) {
     val catches by vm.catches.collectAsState()
     val catch = catches.find { it.id == catchId }
@@ -76,6 +78,9 @@ fun CatchDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { vm.startEditCatch(catch); onEdit() }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    }
                     IconButton(onClick = { confirmDelete = true }) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete")
                     }

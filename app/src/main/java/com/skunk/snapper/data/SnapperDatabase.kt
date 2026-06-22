@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Catch::class, Spot::class], version = 5, exportSchema = true)
+@Database(entities = [Catch::class, Spot::class], version = 6, exportSchema = true)
 abstract class SnapperDatabase : RoomDatabase() {
     abstract fun catchDao(): CatchDao
     abstract fun spotDao(): SpotDao
@@ -29,6 +29,13 @@ abstract class SnapperDatabase : RoomDatabase() {
             }
         }
 
+        /** v6 adds an optional photo to saved spots. */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `spots` ADD COLUMN `photoPath` TEXT")
+            }
+        }
+
         fun get(context: Context): SnapperDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
@@ -36,7 +43,7 @@ abstract class SnapperDatabase : RoomDatabase() {
                     SnapperDatabase::class.java,
                     "snapper.db"
                 )
-                    .addMigrations(MIGRATION_4_5)
+                    .addMigrations(MIGRATION_4_5, MIGRATION_5_6)
                     // Backstop only for unforeseen version states; the migration above
                     // preserves catches on the normal v4 → v5 upgrade.
                     .fallbackToDestructiveMigration()

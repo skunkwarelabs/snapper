@@ -41,6 +41,8 @@ private val MONTHS = arrayOf(
 
 /** State of the "add a catch" flow. */
 data class AddUiState(
+    /** Non-null when editing an existing catch (its id); null for a brand-new catch. */
+    val editingId: Long? = null,
     val photoPath: String? = null,
     val identifying: Boolean = false,
     val species: String = "",
@@ -105,26 +107,41 @@ class CatchViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * Save a fishing spot at [lat]/[lng]. If [name] is blank, derive a fallback name from the
-     * nearest named water/place so the pin still reads as something meaningful.
+     * nearest named water/place so the pin still reads as something meaningful. [photoUri], if
+     * given, is copied into internal storage.
      */
-    fun saveSpot(lat: Double, lng: Double, name: String = "") {
+    fun saveSpot(lat: Double, lng: Double, name: String = "", photoUri: Uri? = null) {
         viewModelScope.launch {
             val auto = if (name.isBlank()) withContext(Dispatchers.IO) { deriveSpotName(lat, lng) } else ""
+            val path = photoUri?.let { withContext(Dispatchers.IO) { ImageStorage.copyToInternal(getApplication(), it) } }
             spotDao.insert(
                 Spot(
                     name = name.trim(), autoName = auto,
-                    lat = lat, lng = lng, createdAt = System.currentTimeMillis()
+                    lat = lat, lng = lng, createdAt = System.currentTimeMillis(),
+                    photoPath = path
                 )
             )
         }
     }
 
-    fun renameSpot(spot: Spot, name: String) {
-        viewModelScope.launch { spotDao.update(spot.copy(name = name.trim())) }
+    /** Edit a spot's name and/or photo. A new [photoUri] replaces the photo; null keeps the old one. */
+    fun updateSpot(spot: Spot, name: String, photoUri: Uri? = null) {
+        viewModelScope.launch {
+            val path = if (photoUri != null) {
+                withContext(Dispatchers.IO) {
+                    runCatching { spot.photoPath?.let { File(it).delete() } }  // drop the replaced photo
+                    ImageStorage.copyToInternal(getApplication(), photoUri)
+                }
+            } else spot.photoPath
+            spotDao.update(spot.copy(name = name.trim(), photoPath = path))
+        }
     }
 
     fun deleteSpot(spot: Spot) {
-        viewModelScope.launch { spotDao.delete(spot) }
+        viewModelScope.launch {
+            spotDao.delete(spot)
+            withContext(Dispatchers.IO) { runCatching { spot.photoPath?.let { File(it).delete() } } }
+        }
     }
 
     /** Reverse-geocode to a human label for an unnamed spot (feature/water, then locale). */
@@ -423,6 +440,24 @@ class CatchViewModel(app: Application) : AndroidViewModel(app) {
         useCurrentLocation()
     }
 
+    /** Load an existing catch into the draft for editing (saving will update, not insert). */
+    fun startEditCatch(catch: Catch) {
+        _add.value = AddUiState(
+            editingId = catch.id,
+            photoPath = catch.photoPath,
+            species = catch.species,
+            confidence = catch.confidence,
+            details = catch.details,
+            lengthEstimate = catch.lengthEstimate,
+            weightLb = catch.weightLb,
+            weightOz = catch.weightOz,
+            notes = catch.notes,
+            caughtAt = catch.caughtAt,
+            lat = catch.lat,
+            lng = catch.lng
+        )
+    }
+
     /** Set the draft's location to the latest known GPS fix, if available/permitted. */
     fun useCurrentLocation() {
         LocationProvider.lastKnown(getApplication())?.let { (lat, lng) ->
@@ -503,21 +538,21 @@ class CatchViewModel(app: Application) : AndroidViewModel(app) {
         val draft = _add.value
         val path = draft.photoPath ?: return
         viewModelScope.launch {
-            dao.insert(
-                Catch(
-                    species = draft.species.ifBlank { "Unknown" },
-                    confidence = draft.confidence,
-                    details = draft.details,
-                    lengthEstimate = draft.lengthEstimate,
-                    weightLb = draft.weightLb,
-                    weightOz = draft.weightOz,
-                    notes = draft.notes,
-                    photoPath = path,
-                    caughtAt = if (draft.caughtAt > 0L) draft.caughtAt else System.currentTimeMillis(),
-                    lat = draft.lat,
-                    lng = draft.lng
-                )
+            val record = Catch(
+                id = draft.editingId ?: 0,
+                species = draft.species.ifBlank { "Unknown" },
+                confidence = draft.confidence,
+                details = draft.details,
+                lengthEstimate = draft.lengthEstimate,
+                weightLb = draft.weightLb,
+                weightOz = draft.weightOz,
+                notes = draft.notes,
+                photoPath = path,
+                caughtAt = if (draft.caughtAt > 0L) draft.caughtAt else System.currentTimeMillis(),
+                lat = draft.lat,
+                lng = draft.lng
             )
+            if (draft.editingId != null) dao.update(record) else dao.insert(record)
             _add.update { it.copy(saved = true) }
         }
     }

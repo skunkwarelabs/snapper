@@ -86,7 +86,8 @@ fun AddCatchScreen(vm: CatchViewModel, onDone: () -> Unit, onPickLocation: () ->
         ActivityResultContracts.RequestPermission()
     ) { granted -> if (granted) vm.useCurrentLocation() }
     LaunchedEffect(Unit) {
-        if (!LocationProvider.hasPermission(context)) {
+        // Only auto-stamp location for a brand-new catch; editing must keep the saved location.
+        if (state.editingId == null && !LocationProvider.hasPermission(context)) {
             locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
     }
@@ -114,7 +115,7 @@ fun AddCatchScreen(vm: CatchViewModel, onDone: () -> Unit, onPickLocation: () ->
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New catch") },
+                title = { Text(if (state.editingId != null) "Edit catch" else "New catch") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -287,7 +288,7 @@ fun AddCatchScreen(vm: CatchViewModel, onDone: () -> Unit, onPickLocation: () ->
                 enabled = state.photoPath != null && !state.identifying,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Save catch")
+                Text(if (state.editingId != null) "Save changes" else "Save catch")
             }
         }
     }

@@ -18,7 +18,9 @@ data class Spot(
     val lat: Double,
     val lng: Double,
     /** When the spot was saved, epoch millis. */
-    val createdAt: Long
+    val createdAt: Long,
+    /** Absolute path to a photo of the spot in internal storage, if the angler added one. */
+    val photoPath: String? = null
 ) {
     /** What to show on the map and in the list: the user's name, else the derived one. */
     val displayName: String

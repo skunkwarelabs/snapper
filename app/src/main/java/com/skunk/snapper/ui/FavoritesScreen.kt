@@ -1,5 +1,9 @@
 package com.skunk.snapper.ui
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,11 +19,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -30,6 +36,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
@@ -47,17 +54,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.skunk.snapper.data.Spot
 import com.skunk.snapper.util.LocationProvider
 import kotlinx.coroutines.launch
+import java.io.File
 
 /**
  * Saved fishing spots. Tap a spot to see it on the map; the ＋ button saves your current
- * location as a new spot (optionally named). Spots also appear as ⭐ pins on the Map, and
- * can be dropped there by long-pressing the map.
+ * location as a new spot (name + optional photo). Spots also appear as ⭐ pins on the Map.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,10 +76,9 @@ fun FavoritesScreen(vm: CatchViewModel, onOpenSpot: (Spot) -> Unit) {
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
 
-    // Non-null when the add/rename dialog is open. A new spot carries its coords; a rename
-    // carries the existing spot.
+    // Editor state: adding (coords, no spot) or editing (an existing spot). Null = closed.
     var addAt by remember { mutableStateOf<Pair<Double, Double>?>(null) }
-    var renaming by remember { mutableStateOf<Spot?>(null) }
+    var editing by remember { mutableStateOf<Spot?>(null) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) { Snackbar(it) } },
@@ -104,7 +112,7 @@ fun FavoritesScreen(vm: CatchViewModel, onOpenSpot: (Spot) -> Unit) {
                     SpotCard(
                         spot = spot,
                         onClick = { onOpenSpot(spot) },
-                        onRename = { renaming = spot },
+                        onEdit = { editing = spot },
                         onDelete = { vm.deleteSpot(spot) }
                     )
                 }
@@ -112,22 +120,24 @@ fun FavoritesScreen(vm: CatchViewModel, onOpenSpot: (Spot) -> Unit) {
         }
     }
 
-    // Save-new dialog: optional name for the just-dropped/current-location spot.
+    // Save a new spot at the current location.
     addAt?.let { (lat, lng) ->
-        SpotNameDialog(
+        SpotEditorDialog(
             title = "Save this spot",
-            initial = "",
-            onConfirm = { name -> vm.saveSpot(lat, lng, name); addAt = null },
+            initialName = "",
+            existingPhotoPath = null,
+            onConfirm = { name, photoUri -> vm.saveSpot(lat, lng, name, photoUri); addAt = null },
             onDismiss = { addAt = null }
         )
     }
-    // Rename dialog.
-    renaming?.let { spot ->
-        SpotNameDialog(
-            title = "Rename spot",
-            initial = spot.name,
-            onConfirm = { name -> vm.renameSpot(spot, name); renaming = null },
-            onDismiss = { renaming = null }
+    // Edit an existing spot (name + photo).
+    editing?.let { spot ->
+        SpotEditorDialog(
+            title = "Edit spot",
+            initialName = spot.name,
+            existingPhotoPath = spot.photoPath,
+            onConfirm = { name, photoUri -> vm.updateSpot(spot, name, photoUri); editing = null },
+            onDismiss = { editing = null }
         )
     }
 }
@@ -136,7 +146,7 @@ fun FavoritesScreen(vm: CatchViewModel, onOpenSpot: (Spot) -> Unit) {
 private fun SpotCard(
     spot: Spot,
     onClick: () -> Unit,
-    onRename: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
@@ -144,12 +154,27 @@ private fun SpotCard(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Default.Star,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(32.dp)
-            )
+            // Photo if the angler added one, otherwise a star tile.
+            if (spot.photoPath != null) {
+                AsyncImage(
+                    model = File(spot.photoPath),
+                    contentDescription = spot.displayName,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp))
+                )
+            } else {
+                Box(
+                    Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(spot.displayName, style = MaterialTheme.typography.titleMedium)
@@ -165,9 +190,9 @@ private fun SpotCard(
             }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(
-                    text = { Text("Rename") },
+                    text = { Text("Edit") },
                     leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                    onClick = { menu = false; onRename() }
+                    onClick = { menu = false; onEdit() }
                 )
                 DropdownMenuItem(
                     text = { Text("Delete") },
@@ -179,30 +204,85 @@ private fun SpotCard(
     }
 }
 
+/** Add/edit a spot: a photo (gallery) and an optional name. */
 @Composable
-private fun SpotNameDialog(
+private fun SpotEditorDialog(
     title: String,
-    initial: String,
-    onConfirm: (String) -> Unit,
+    initialName: String,
+    existingPhotoPath: String?,
+    onConfirm: (name: String, photoUri: Uri?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var name by remember { mutableStateOf(initial) }
+    var name by remember { mutableStateOf(initialName) }
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+    val pickPhoto = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> if (uri != null) photoUri = uri }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                singleLine = true,
-                label = { Text("Name (optional)") },
-                placeholder = { Text("e.g. The honey hole") }
-            )
+            Column {
+                // Photo preview: newly picked, else the existing one, else a placeholder tile.
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            pickPhoto.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    val model: Any? = photoUri ?: existingPhotoPath?.let { File(it) }
+                    if (model != null) {
+                        AsyncImage(
+                            model = model,
+                            contentDescription = "Spot photo",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+                            Text("Add a photo", style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        pickPhoto.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.PhotoLibrary, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (model_has(photoUri, existingPhotoPath)) "Change photo" else "Add photo")
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    singleLine = true,
+                    label = { Text("Name (optional)") },
+                    placeholder = { Text("e.g. The honey hole") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         },
-        confirmButton = { TextButton(onClick = { onConfirm(name) }) { Text("Save") } },
+        confirmButton = { TextButton(onClick = { onConfirm(name, photoUri) }) { Text("Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
+
+private fun model_has(photoUri: Uri?, existingPhotoPath: String?) =
+    photoUri != null || existingPhotoPath != null
 
 @Composable
 private fun EmptyFavorites(modifier: Modifier = Modifier) {

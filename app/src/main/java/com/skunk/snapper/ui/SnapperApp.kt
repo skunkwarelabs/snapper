@@ -102,7 +102,14 @@ fun SnapperApp() {
                 MapScreen(
                     vm = vm,
                     onOpenCatch = { id -> nav.navigate("detail/$id") },
-                    onOpenFish = { fish -> vm.openFish(fish); nav.navigate("fishDetail") }
+                    onOpenFish = { fish -> vm.openFish(fish); nav.navigate("fishDetail") },
+                    onOpenFavorites = {
+                        nav.navigate(Tab.Favorites.route) {
+                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 )
             }
             composable(Tab.Identify.route) {
@@ -160,7 +167,11 @@ fun SnapperApp() {
                 arguments = listOf(navArgument("id") { type = NavType.LongType })
             ) { entry ->
                 val id = entry.arguments?.getLong("id") ?: return@composable
-                CatchDetailScreen(vm = vm, catchId = id, onBack = { nav.popBackStack() })
+                CatchDetailScreen(
+                    vm = vm, catchId = id,
+                    onBack = { nav.popBackStack() },
+                    onEdit = { nav.navigate("add") }
+                )
             }
         }
     }

@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -13,6 +14,9 @@ interface CatchDao {
 
     @Insert
     suspend fun insert(item: Catch): Long
+
+    @Update
+    suspend fun update(item: Catch)
 
     @Delete
     suspend fun delete(item: Catch)
