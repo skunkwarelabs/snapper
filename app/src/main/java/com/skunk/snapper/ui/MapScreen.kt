@@ -350,7 +350,15 @@ fun MapScreen(
         val hasLocation = ContextCompat.checkSelfPermission(
             context, Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
-        if (hasLocation) centerOnMe() else locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        // Don't auto-center on the user if we're here to fly to a saved spot — that would
+        // yank the map away from the spot a moment after we land on it.
+        if (vm.focusSpot.value != null) {
+            // a spot focus is pending; the focusSpot effect below handles the camera
+        } else if (hasLocation) {
+            centerOnMe()
+        } else {
+            locationPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
 
         // Scan automatically as soon as the map has a real viewport, and again
         // (debounced) whenever the user pans or zooms to a new area.
@@ -389,11 +397,16 @@ fun MapScreen(
         mapView.invalidate()
     }
 
-    // When the Favorites tab asks to show a spot, fly there.
+    // When the Favorites tab asks to show a spot, center + zoom in on it. setCenter/setZoom
+    // (not animateTo) so it sticks even before first layout and doesn't race the auto-scan.
     LaunchedEffect(focusSpot) {
         focusSpot?.let { s ->
-            mapView.controller.setZoom(15.0)
-            mapView.controller.animateTo(GeoPoint(s.lat, s.lng))
+            val p = GeoPoint(s.lat, s.lng)
+            mapView.post {
+                mapView.controller.setZoom(17.0)   // close, street-level
+                mapView.controller.setCenter(p)
+            }
+            mapView.postDelayed({ findWaterHere(announce = false) }, 600)
             vm.consumeFocusSpot()
         }
     }
