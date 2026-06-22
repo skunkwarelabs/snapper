@@ -1,0 +1,27 @@
+Categories:
+  - Sports & Health
+  - Navigation
+License: GPL-3.0-only
+AuthorName: skunkware
+AuthorEmail: mason@skunkware.net
+WebSite: https://skunkware.net/apps/snapper
+SourceCode: https://github.com/skunkwarelabs/snapper
+IssueTracker: https://github.com/skunkwarelabs/snapper/issues
+
+AutoName: Snapper
+
+RepoType: git
+Repo: https://github.com/skunkwarelabs/snapper.git
+
+Builds:
+  - versionName: '1.0'
+    versionCode: 1
+    commit: '1.0'
+    subdir: app
+    gradle:
+      - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: '1.0'
+CurrentVersionCode: 1
